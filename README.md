@@ -4,7 +4,7 @@
 
 Este repositório contém a **API** do Artemis: a camada que conecta a interface web aos agentes de IA e à base de conhecimento, além de cuidar das regras de negócio, da autenticação e da persistência dos dados.
 
-> 🚧 **Em desenvolvimento.** Hoje existem `GET /health`, o cadastro com consentimento (`POST /v1/auth/cadastro`), o login (`POST /v1/auth/login`), o banco Postgres (tabelas `usuarias`, `conversas` e `mensagens`) e as migrações. As conversas, o texto do consentimento e a chamada aos agentes ainda não foram implementados, e ainda não há rota protegida por token.
+> 🚧 **Em desenvolvimento.** Hoje existem `GET /health`, o cadastro com consentimento (`POST /v1/auth/cadastro`), o login (`POST /v1/auth/login`), o banco Postgres (tabelas `usuarias`, `conversas` e `mensagens`), as migrações e as rotas de conversas (criar, listar, abrir, apagar e perguntar), todas protegidas por token. A pergunta chama o serviço de agentes por HTTP, mas o contrato ainda é um rascunho ([artemishub_agents#36](https://github.com/ArtemisHubApp/artemishub_agents/issues/36)) e o endpoint de lá ainda não existe: nos testes os agentes são simulados. Ainda não existem o texto do consentimento nem a exclusão da conta.
 
 ## 🎯 Responsabilidades
 
@@ -50,6 +50,24 @@ Python 3.12, [uv](https://docs.astral.sh/uv/), FastAPI, SQLAlchemy 2 (async) com
 | `POST /v1/auth/login` | `email`, `senha` | 200 com `{"token": ..., "tipo": "bearer"}` (JWT de 60 minutos, sem refresh); 401 para senha errada ou e-mail sem conta, com a mesma resposta |
 
 O e-mail é normalizado (espaços e maiúsculas) no cadastro e no login. A senha é guardada com argon2. As respostas 422 não repetem o que foi enviado.
+
+### Rotas de conversas
+
+Exigem `Authorization: Bearer <token>` (401 sem token válido). Cada usuária só enxerga as próprias conversas: a de outra usuária responde 404, igual a uma que não existe.
+
+| Rota | Resposta |
+|---|---|
+| `POST /v1/conversas` | 201 com a conversa vazia: `id`, `titulo` (nulo até a primeira pergunta), `criada_em`, `atualizada_em` |
+| `GET /v1/conversas` | 200 com a lista da usuária, da mais recente para a mais antiga (por `atualizada_em`) |
+| `GET /v1/conversas/{id}` | 200 com a conversa e `mensagens` em ordem cronológica (`id`, `papel`, `texto`, `criada_em`, `aprovada`, `bloqueada`, `pergunta_id`); 404; 422 se o id não for um UUID |
+| `DELETE /v1/conversas/{id}` | 204 e apaga as mensagens, sem volta; 404 se não existe ou já foi apagada |
+| `POST /v1/conversas/{id}/mensagens` | corpo `{"pergunta": "..."}` (até 1.000 caracteres, com espaços das pontas removidos ao guardar); 201 com `pergunta` e `resposta`, cada uma com os campos das mensagens acima; 404 (também se a conversa for apagada durante a resposta); 409 se já há uma pergunta em andamento na conversa ou se ela passou de 60 s e outra tomou o lugar; 422 para pergunta vazia, longa ou com caractere inválido |
+
+A Artemis recebe até 3 trocas anteriores aprovadas da mesma conversa, a lembrança guardada e o id da conversa, nunca o e-mail nem o id da usuária. Se os agentes falharem ou passarem de 60 s no total, a resposta é 201 com "Não consegui responder agora, tente de novo" e `aprovada` falso, sem nova tentativa. A trava da conversa expira em 60 s, então uma queda da API não a deixa presa. O contrato com os agentes fica em [contratos/responder.v1.schema.json](contratos/responder.v1.schema.json).
+
+Se o banco recusar, cair ou não responder (5 s para conectar, 10 s por comando), a API responde 503.
+
+As datas saem em UTC (`...Z`). A lista ainda não tem paginação.
 
 Nova migração: `uv run alembic revision --autogenerate -m "<descrição>"` e revise o arquivo gerado.
 

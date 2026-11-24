@@ -244,7 +244,11 @@ async def test_banco_inalcancavel_da_503_json_e_log_so_com_o_tipo(config, caplog
             assert (r.status_code, r.json()) == (503, MENSAGEM_503)
     await app.state.motor.dispose()
     assert "qa1x" not in caplog.text and "Traceback" not in caplog.text
-    assert "503" in caplog.text or "OSError" in caplog.text or "Error" in caplog.text
+    registros = [r for r in caplog.records if r.name == "artemis_backend.adapters.erros"]
+    assert [r.getMessage() for r in registros] == [
+        "Banco indisponível: BancoIndisponivel em POST /v1/auth/login",
+        "Banco indisponível: BancoIndisponivel em POST /v1/auth/cadastro",
+    ]
 
 
 async def test_conexao_quebrada_da_503_e_depois_recupera(cliente, app, caplog):

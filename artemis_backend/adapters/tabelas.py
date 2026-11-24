@@ -47,6 +47,7 @@ class Mensagem(Base):
     __tablename__ = "mensagens"
     __table_args__ = (
         CheckConstraint("papel IN ('usuaria', 'artemis')", name="ck_mensagens_papel"),
+        Index("ix_mensagens_conversa_id", "conversa_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
