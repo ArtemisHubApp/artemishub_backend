@@ -3,6 +3,8 @@ import pytest
 from artemis_backend.config import Config
 from artemis_backend.main import app_de_ambiente
 
+SEGREDO = "s" * 32
+
 
 async def test_saude(cliente):
     r = await cliente.get("/health")
@@ -11,11 +13,11 @@ async def test_saude(cliente):
 
 def test_config_le_as_variaveis_do_ambiente(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@h/d")
-    monkeypatch.setenv("ARTEMIS_JWT_SEGREDO", "segredo")
+    monkeypatch.setenv("ARTEMIS_JWT_SEGREDO", SEGREDO)
     monkeypatch.setenv("ARTEMIS_AGENTS_URL", "http://agentes")
     monkeypatch.setenv("ARTEMIS_AGENTS_TOKEN", "token")
     config = Config.de_ambiente()
-    assert (config.database_url, config.jwt_segredo) == ("postgresql+asyncpg://u:p@h/d", "segredo")
+    assert (config.database_url, config.jwt_segredo) == ("postgresql+asyncpg://u:p@h/d", SEGREDO)
     assert (config.agents_url, config.agents_token) == ("http://agentes", "token")
 
 
@@ -49,7 +51,7 @@ def test_variavel_ausente_e_nomeada_no_erro(monkeypatch, variavel):
 def test_segredos_nao_aparecem_no_repr():
     config = Config(
         database_url="postgresql+asyncpg://u:senha-do-banco@h/d",
-        jwt_segredo="segredo-jwt",
+        jwt_segredo="segredo-jwt-" + "x" * 32,
         agents_url="http://agentes",
         agents_token="token-agentes",
     )
@@ -61,3 +63,13 @@ def test_app_de_ambiente_nao_sobe_sem_segredo(monkeypatch):
     monkeypatch.delenv("ARTEMIS_JWT_SEGREDO", raising=False)
     with pytest.raises(ValueError, match="ARTEMIS_JWT_SEGREDO"):
         app_de_ambiente()
+
+
+@pytest.mark.parametrize("tamanho", [1, 31])
+def test_segredo_curto_nao_sobe_e_nao_aparece_no_erro(monkeypatch, tamanho):
+    for nome in ("DATABASE_URL", "ARTEMIS_AGENTS_URL", "ARTEMIS_AGENTS_TOKEN"):
+        monkeypatch.setenv(nome, "x")
+    monkeypatch.setenv("ARTEMIS_JWT_SEGREDO", "z" * tamanho)
+    with pytest.raises(ValueError, match="32") as erro:
+        Config.de_ambiente()
+    assert "zzz" not in str(erro.value)
