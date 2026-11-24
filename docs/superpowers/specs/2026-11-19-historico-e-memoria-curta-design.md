@@ -106,6 +106,19 @@ O backend é quem guarda a lembrança devolvida e a manda de volta na próxima p
 7. **Nada de persona:** sexo, raça e origem não são campos de nada. A referência para negociar é a mesma para todas (relatório de vieses).
 8. **Teste contrafactual:** o mesmo histórico, trocando só o gênero das palavras da usuária, precisa gerar os mesmos números e a mesma referência. Fica como teste automatizado com LLM simulado e como dataset no Langfuse.
 
+## Como a memória curta muda o comportamento (esclarecido na revisão, proposta a aprovar)
+
+- **Onde entra:** no prompt da Análise (`{{historico}}`) e na decisão de continuação do Orquestrador. Não vira parâmetro: UF, ocupação e salário vêm só da pergunta atual ou da lembrança.
+- **Continuação:** hoje "e se eu tiver 5 anos de experiência?" cai em fora de escopo. Com histórico limpo, uma pergunta sem tema próprio que comece como continuação ("e se", "e para", "explica", "por quê", "qual deles") herda a intenção da lembrança. "Qual a capital da França?" continua fora de escopo.
+- **Experiência:** os agregados da RAIS não têm esse recorte. A resposta diz isso e mantém os números do grupo; nunca estima.
+- **O que entra na memória curta:** só trocas com `aprovada=true`. Ficam de fora as bloqueadas, as abstenções, as fora de escopo e os erros.
+- **Quem limpa:** o backend manda o texto como foi exibido; o agents remove "Limites", "Fontes" e citações e só depois corta (500/800 caracteres). A limpeza fica perto do LLM e testada num lugar só.
+- **Salário no histórico:** o texto antigo pode trazer um salário, mas ele não conta como número permitido. Só o salário da pergunta atual pode aparecer na resposta nova.
+- **Grafo sem estado:** o grafo é montado uma vez por processo; `historico` e `lembranca` entram no estado de cada pedido, e a lembrança nova sai no estado final. A porta `MemoriaDaConversa` continua só no chat do terminal.
+- **Prompt:** o código passa a enviar `historico` antes; a versão do prompt com `{{historico}}` é testada com o label `staging` e só depois recebe `production`.
+- **Timeout:** 60 s no backend, sem nova tentativa automática. Uma resposta que chegue depois é descartada, e a trava da conversa (409) é liberada no timeout.
+- **Compose:** o serviço agents usa o pacote `artemis_rag` (artemishub_agents#37) e monta o índice como volume somente leitura. O teste ponta a ponta no compose é manual nesta fatia.
+
 ## Login e segurança
 
 - Senha com argon2 (`argon2-cffi`). JWT HS256 assinado com `ARTEMIS_JWT_SEGREDO` (no `.env`, nunca no repo), 60 minutos, sem refresh nesta fatia.
@@ -134,4 +147,4 @@ O backend é quem guarda a lembrança devolvida e a manda de volta na próxima p
 
 - Prazo de retenção automático das conversas e o texto do consentimento: ADR de LGPD. O consentimento precisa citar o Gemini e o Langfuse, que recebem o texto das perguntas.
 - **Exclusão no Langfuse:** apagar a conversa no Postgres não apaga os traces. Para "excluir a conta apaga tudo" ser verdade, ou a exclusão também remove os traces da sessão, ou o texto do consentimento diz que eles permanecem.
-- Divisão com a Eduarda: a #36 (orquestrador como API) é dela. Esta fatia precisa de um `POST /v1/responder` mínimo.
+- **Divisão com a Eduarda:** a artemishub_agents#36 e a artemishub_backend#10 são dela. Esta fatia precisa de um `POST /v1/responder`: ela faz, ou a Amanda faz o mínimo e ela evolui?
