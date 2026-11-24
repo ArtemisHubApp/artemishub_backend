@@ -1,9 +1,12 @@
 import asyncio
 import logging
+import socket
 import uuid
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
+import httpx
 import jwt
 import pytest
 from alembic import command
@@ -11,9 +14,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from artemis_backend.adapters.rotas_auth import usuaria_atual
+from artemis_backend.main import criar_app
 from tests.conftest import SEGREDO_DE_TESTE, SENHA_DE_TESTE, config_alembic
 
 EMAIL = "ana@example.com"
+MENSAGEM_503 = {"detail": "Serviço indisponível, tente de novo"}
 
 
 def corpo(email: str = EMAIL, senha: str = SENHA_DE_TESTE, **extra) -> dict:
@@ -203,3 +208,73 @@ def test_migracoes_sem_database_url_dao_mensagem_clara(monkeypatch):
     monkeypatch.delenv("DATABASE_URL", raising=False)
     with pytest.raises(ValueError, match="DATABASE_URL"):
         command.upgrade(config_alembic(""), "head")
+
+
+async def post_bruto(cliente, rota: str, corpo: bytes):
+    return await cliente.post(rota, content=corpo, headers={"Content-Type": "application/json"})
+
+
+@pytest.mark.parametrize("rota", ["/v1/auth/cadastro", "/v1/auth/login"])
+@pytest.mark.parametrize(
+    "email, senha",
+    [
+        ("a\\ud800b@example.com", "senhaboa123"),
+        ("ana@example.com", "senha\\udfffboa123"),
+    ],
+)
+async def test_surrogate_solto_e_recusado_sem_500_nem_log(cliente, caplog, rota, email, senha):
+    caplog.set_level(logging.DEBUG)
+    corpo = f'{{"email":"{email}","senha":"{senha}","consentimento":true}}'.encode()
+    r = await post_bruto(cliente, rota, corpo)
+    assert r.status_code in (401, 422)
+    assert "ud800" not in r.text and "senhaboa" not in r.text
+    assert "senhaboa" not in caplog.text and "Traceback" not in caplog.text
+
+
+async def test_banco_inalcancavel_da_503_json_e_log_so_com_o_tipo(config, caplog):
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        porta = s.getsockname()[1]
+    app = criar_app(replace(config, database_url=f"postgresql+asyncpg://u:p@127.0.0.1:{porta}/d"))
+    transporte = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transporte, base_url="http://teste") as c:
+        caplog.set_level(logging.DEBUG)
+        for rota in ("/v1/auth/login", "/v1/auth/cadastro"):
+            r = await c.post(rota, json=corpo("qa1x@example.com"))
+            assert (r.status_code, r.json()) == (503, MENSAGEM_503)
+    await app.state.motor.dispose()
+    assert "qa1x" not in caplog.text and "Traceback" not in caplog.text
+    assert "503" in caplog.text or "OSError" in caplog.text or "Error" in caplog.text
+
+
+async def test_conexao_quebrada_da_503_e_depois_recupera(cliente, app, caplog):
+    await cadastrar(cliente, email="qa2x@example.com")
+    assert (await logar(cliente, "qa2x@example.com")).status_code == 200
+    await ler_banco(
+        app,
+        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+        "WHERE datname = current_database() AND pid <> pg_backend_pid()",
+    )
+    caplog.set_level(logging.DEBUG)
+    r = await logar(cliente, "qa2x@example.com")
+    assert (r.status_code, r.json()) == (503, MENSAGEM_503)
+    assert "qa2x" not in caplog.text and "Traceback" not in caplog.text
+    assert (await logar(cliente, "qa2x@example.com")).status_code == 200
+
+
+async def test_excecao_inesperada_da_500_json_sem_valores_no_log(app, cliente, caplog):
+    @app.get("/_teste/quebra")
+    async def quebra() -> None:
+        raise RuntimeError("falha com qa3x@example.com e senha-xyz")
+
+    caplog.set_level(logging.DEBUG)
+    r = await cliente.get("/_teste/quebra")
+    assert (r.status_code, r.json()) == (500, {"detail": "Erro interno"})
+    assert "qa3x" not in r.text + caplog.text and "senha-xyz" not in caplog.text
+    assert "Traceback" not in caplog.text
+    assert "RuntimeError" in caplog.text and "/_teste/quebra" in caplog.text
+
+
+async def test_404_e_405_continuam(cliente):
+    assert (await cliente.get("/nao-existe")).status_code == 404
+    assert (await cliente.get("/v1/auth/login")).status_code == 405

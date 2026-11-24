@@ -3,6 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from artemis_backend.adapters.banco import criar_fabrica_de_sessoes, criar_motor
+from artemis_backend.adapters.erros import ProtegeErros
 from artemis_backend.adapters.repositorio_contas import RepositorioContasSql
 from artemis_backend.adapters.rotas_auth import roteador as rotas_auth
 from artemis_backend.adapters.seguranca import EmissorJwt, HasherArgon2, RelogioDoSistema
@@ -31,6 +32,7 @@ def criar_app(config: Config) -> FastAPI:
         relogio=relogio,
     )
     app.include_router(rotas_auth)
+    app.add_middleware(ProtegeErros)
 
     @app.get("/health")
     async def saude() -> dict[str, str]:

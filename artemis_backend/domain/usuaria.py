@@ -46,6 +46,11 @@ def normalizar_email(email: str) -> str:
     normalizado = email.strip().lower()
     if len(normalizado) > _EMAIL_MAXIMO or not _FORMATO_EMAIL.fullmatch(normalizado):
         raise EmailInvalido("E-mail inválido")
+    try:
+        normalizado.encode("utf-8")
+    except UnicodeEncodeError:
+        # Surrogate solto: não vira UTF-8, então o banco nem o log conseguiriam tratá-lo.
+        raise EmailInvalido("E-mail inválido") from None
     return normalizado
 
 
