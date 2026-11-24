@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -40,6 +40,13 @@ class RepositorioContasSql:
             await sessao.commit()
         if gravada is None:
             raise EmailJaCadastrado
+
+    async def excluir(self, id: uuid.UUID) -> bool:
+        comando = delete(LinhaUsuaria).where(LinhaUsuaria.id == id).returning(LinhaUsuaria.id)
+        async with self._sessoes() as sessao:
+            apagada = await sessao.scalar(comando)
+            await sessao.commit()
+        return apagada is not None
 
     async def por_email(self, email: str) -> Usuaria | None:
         async with self._sessoes() as sessao:
