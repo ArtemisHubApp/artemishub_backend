@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "POST /v1/responder (v1)",
+  "description": "RASCUNHO do contrato entre backend e agents (ArtemisHubApp/artemishub_agents#36); ainda não fechado.",
+  "$defs": {
+    "texto": {
+      "description": "Sem NUL e sem surrogate solto: o Postgres não guarda nenhum dos dois.",
+      "type": "string",
+      "pattern": "^[^\\u0000\\ud800-\\udfff]*$"
+    },
+    "lembranca": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "salario",
+        "direitos",
+        "cbo_familia",
+        "cbo_familia_nome",
+        "ocupacao",
+        "uf"
+      ],
+      "properties": {
+        "salario": {
+          "type": "boolean"
+        },
+        "direitos": {
+          "type": "boolean"
+        },
+        "cbo_familia": {
+          "anyOf": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/texto"
+                },
+                {
+                  "maxLength": 20
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cbo_familia_nome": {
+          "anyOf": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/texto"
+                },
+                {
+                  "maxLength": 200
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ocupacao": {
+          "anyOf": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/texto"
+                },
+                {
+                  "maxLength": 200
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "uf": {
+          "anyOf": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/texto"
+                },
+                {
+                  "maxLength": 2
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "troca": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pergunta",
+        "resposta"
+      ],
+      "properties": {
+        "pergunta": {
+          "$ref": "#/$defs/texto"
+        },
+        "resposta": {
+          "$ref": "#/$defs/texto"
+        }
+      }
+    },
+    "pedido": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pergunta",
+        "sessao",
+        "historico",
+        "lembranca"
+      ],
+      "properties": {
+        "pergunta": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/texto"
+            }
+          ],
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "sessao": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/texto"
+            }
+          ],
+          "minLength": 1
+        },
+        "historico": {
+          "description": "Da mais antiga para a mais nova.",
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/troca"
+          }
+        },
+        "lembranca": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/lembranca"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "resposta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resposta",
+        "aprovada",
+        "bloqueada",
+        "fora_de_escopo",
+        "lembranca",
+        "trace_id",
+        "passos"
+      ],
+      "properties": {
+        "resposta": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/texto"
+            }
+          ],
+          "maxLength": 20000,
+          "pattern": "\\S"
+        },
+        "aprovada": {
+          "type": "boolean"
+        },
+        "bloqueada": {
+          "type": "boolean"
+        },
+        "fora_de_escopo": {
+          "type": "boolean"
+        },
+        "lembranca": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/lembranca"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "trace_id": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/texto"
+            }
+          ],
+          "maxLength": 200
+        },
+        "passos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/texto"
+          }
+        }
+      }
+    }
+  }
+}

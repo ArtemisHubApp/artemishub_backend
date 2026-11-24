@@ -1,15 +1,23 @@
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Any
 
 PAPEL_USUARIA = "usuaria"
 PAPEL_ARTEMIS = "artemis"
 TITULO_MAXIMO = 60
 TROCAS_NA_MEMORIA = 3
+PERGUNTA_MAXIMA = 1000
+# Se o processo cair no meio da resposta, a conversa volta a aceitar perguntas depois disso.
+VALIDADE_DA_TRAVA = timedelta(seconds=60)
 
 
 class ConversaInexistente(Exception):
     """Não existe conversa com esse id para essa usuária (inclui a que é de outra)."""
+
+
+class ConversaOcupada(Exception):
+    """Já há uma pergunta em andamento, ou a trava desta pergunta passou para outra."""
 
 
 class UsuariaInexistente(Exception):
@@ -46,6 +54,28 @@ class Conversa:
 class ConversaComMensagens:
     conversa: Conversa
     mensagens: tuple[Mensagem, ...]
+
+
+@dataclass(frozen=True)
+class PerguntaIniciada:
+    """Pergunta gravada com a trava da conversa; `anteriores` não a inclui."""
+
+    pergunta: Mensagem
+    anteriores: tuple[Mensagem, ...]
+    lembranca: dict[str, Any] | None
+    respondendo_desde: datetime
+
+
+@dataclass(frozen=True)
+class NovaResposta:
+    """Resposta da Artemis ainda não gravada: a data vem do banco."""
+
+    id: uuid.UUID
+    texto: str
+    aprovada: bool
+    bloqueada: bool
+    trace_id: str | None
+    pergunta_id: uuid.UUID
 
 
 def titulo_da_conversa(pergunta: str) -> str:
