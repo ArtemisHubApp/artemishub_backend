@@ -25,6 +25,16 @@ Memória curta e limpeza do histórico dentro do agents, `POST /v1/responder` (a
 
 Combinar com a Camila antes do PR 1 e do PR 2. Spec e plano vão no PR 1.
 
+## Execução e QA (aprovado pela Amanda em 24/11)
+
+Subagentes: um implementa e outro revisa cada task. Depois da revisão, um terceiro faz o **QA** e devolve um relatório com passos, resultado esperado e obtido. Ele não corrige código: o que achar volta para quem implementou, e o QA repete o caso. A task só fecha com revisão e QA aprovados.
+
+- **O que testa:** a API rodando de verdade (uvicorn e Postgres em container), por HTTP, como uma usuária, e não a suíte de testes.
+- **Sempre:** os critérios da task, os itens do Review Focus dela e uma tentativa de acessar dados de outra usuária.
+- **Task 4:** agentes simulados lentos, fora do ar e com resposta inválida; duas perguntas simultâneas.
+- **Final (depois da Task 5):** jornada completa: cadastro, conversa, histórico, exclusão da conversa e da conta; logs sem dados pessoais.
+- **Sem LLM:** nenhuma chamada ao Gemini no QA; só dados fictícios `@example.com`.
+
 ## Global Constraints
 
 - Pacote `artemis_backend`, nunca `src`: o nome `src` já colidiu entre agents e rag.
