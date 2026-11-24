@@ -20,6 +20,7 @@ from artemis_backend.main import criar_app
 
 SEGREDO_DE_TESTE = "segredo-falso-so-para-testes-com-mais-de-32-bytes"
 SENHA_DE_TESTE = "senha-de-teste-123"
+ORIGEM_DE_TESTE = "https://artemis.example.com"
 RAIZ = Path(__file__).resolve().parent.parent
 
 
@@ -107,6 +108,7 @@ def config() -> Config:
         jwt_segredo=SEGREDO_DE_TESTE,
         agents_url="http://agentes.invalid",
         agents_token="token-de-teste",
+        origem=ORIGEM_DE_TESTE,
     )
 
 
