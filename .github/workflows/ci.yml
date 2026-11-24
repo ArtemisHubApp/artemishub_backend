@@ -1,0 +1,15 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  push:
+    branches: [staging, main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  ci:
+    uses: ArtemisHubApp/artemishub_orchestration/.github/workflows/python-ci.yml@main
