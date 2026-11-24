@@ -78,15 +78,16 @@ class ServicoPerguntas:
         iniciada: PerguntaIniciada,
         obtida: RespostaAgentes,
     ) -> Mensagem:
+        # Só resposta aprovada entra na memória curta: bloqueada e fora de escopo nunca.
+        aceita = not (obtida.bloqueada or obtida.fora_de_escopo)
         resposta = NovaResposta(
             id=uuid.uuid4(),
             texto=obtida.resposta,
-            aprovada=obtida.aprovada and not obtida.bloqueada,
+            aprovada=obtida.aprovada and aceita,
             bloqueada=obtida.bloqueada,
             trace_id=obtida.trace_id,
             pergunta_id=iniciada.pergunta.id,
         )
-        aceita = not (obtida.bloqueada or obtida.fora_de_escopo)
         return await self._repositorio.concluir_pergunta(
             usuaria_id,
             conversa_id,

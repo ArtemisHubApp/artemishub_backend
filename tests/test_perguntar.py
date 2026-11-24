@@ -4,14 +4,16 @@ import logging
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy import func, select, text, update
+from sqlalchemy import delete, func, select, text, update
 
+from artemis_backend.adapters.agentes_http import AgentesHttp
 from artemis_backend.adapters.banco import BancoIndisponivel, criar_fabrica_de_sessoes
 from artemis_backend.adapters.repositorio_conversas import RepositorioConversasSql
-from artemis_backend.adapters.tabelas import Conversa, Mensagem
-from artemis_backend.application.perguntar import AgentesIndisponiveis
+from artemis_backend.adapters.tabelas import Conversa, Mensagem, Usuaria
+from artemis_backend.application.perguntar import AgentesIndisponiveis, ServicoPerguntas
 from artemis_backend.domain.conversa import ConversaInexistente, NovaResposta, Troca
 from tests.conftest import resposta_dos_agentes
 
@@ -140,11 +142,14 @@ async def test_nao_aprovada_e_indisponivel_ficam_fora_do_historico(perguntar, ag
     await perguntar("abstenção")
     agentes.resposta = resposta_dos_agentes(bloqueada=True)
     await perguntar("bloqueada")
+    agentes.resposta = resposta_dos_agentes(aprovada=True, fora_de_escopo=True)
+    fora = await perguntar("fora de escopo")
     agentes.erro = AgentesIndisponiveis()
     await perguntar("erro")
     agentes.erro = None
     await perguntar("última")
     assert agentes.chamadas[-1][2] == []
+    assert fora.json()["resposta"]["aprovada"] is False
 
 
 async def test_nao_manda_email_nem_id_da_usuaria(perguntar, sessao, conversa, agentes):
@@ -377,6 +382,53 @@ async def test_conversa_apagada_durante_a_resposta(
     assert (await tarefa).status_code == 404
     assert await total_de_mensagens(sessao) == 0
     assert await linha(sessao, conversa) is None
+
+
+async def test_conta_apagada_durante_a_resposta(perguntar, sessao, conversa, agentes):
+    agentes.bloquear()
+    tarefa = asyncio.create_task(perguntar())
+    await asyncio.wait_for(agentes.chamado.wait(), 10)
+    await sessao.execute(delete(Usuaria))
+    await sessao.commit()
+    agentes.liberar()
+    assert (await tarefa).status_code == 404
+    assert await total_de_mensagens(sessao) == 0
+    assert await linha(sessao, conversa) is None
+    assert await sessao.scalar(select(func.count()).select_from(Usuaria)) == 0
+
+
+async def test_trava_vencida_e_nao_tomada_ainda_grava_a_resposta(app, sessao, conversa):
+    desde = datetime.now(UTC) - timedelta(seconds=61)
+    await mudar(sessao, conversa, respondendo_desde=desde)
+    dona = (await linha(sessao, conversa)).usuaria_id
+    repositorio = RepositorioConversasSql(criar_fabrica_de_sessoes(app.state.motor))
+    resposta = NovaResposta(uuid.uuid4(), "no limite", False, False, None, None)
+    gravada = await repositorio.concluir_pergunta(dona, uuid.UUID(conversa), desde, resposta, None)
+    assert gravada.texto == "no limite"
+    assert await total_de_mensagens(sessao) == 1
+    assert (await linha(sessao, conversa)).respondendo_desde is None
+
+
+async def test_rota_com_agentes_http_respondendo_500(app, perguntar, mensagens, sessao, conversa):
+    pedidos = []
+
+    def atender(pedido):
+        pedidos.append(pedido)
+        return httpx.Response(500)
+
+    agentes_http = AgentesHttp(
+        "http://agentes.invalid", "token", transporte=httpx.MockTransport(atender)
+    )
+    repositorio = RepositorioConversasSql(criar_fabrica_de_sessoes(app.state.motor))
+    app.state.perguntas = ServicoPerguntas(repositorio, agentes_http)
+    r = await perguntar()
+    await agentes_http.fechar()
+
+    assert r.status_code == 201 and len(pedidos) == 1
+    resposta = r.json()["resposta"]
+    assert (resposta["texto"], resposta["aprovada"]) == (TEXTO_INDISPONIVEL, False)
+    assert await mensagens() == [r.json()["pergunta"], resposta]
+    assert (await linha(sessao, conversa)).respondendo_desde is None
 
 
 async def test_perguntas_em_conversa_alheia(entrar_como, perguntar, sessao, conversa, agentes):
