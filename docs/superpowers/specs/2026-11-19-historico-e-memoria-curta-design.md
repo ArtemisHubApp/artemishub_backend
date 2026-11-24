@@ -13,7 +13,7 @@ A usuária precisa ter acesso ao histórico das mensagens que trocou com a Artem
 2. **Memória curta da Artemis:** as 3 últimas trocas da mesma conversa, mais a lembrança estruturada (intenção, ocupação e UF) que já existe.
 3. **Proteções contra contaminação** (seção própria abaixo).
 4. **Login básico:** uma usuária nunca vê o que é de outra (RNF-06).
-5. **LGPD:** finalidade declarada e exclusão. Excluir a conta apaga tudo (RNF-07 e RNF-16).
+5. **LGPD:** finalidade declarada e exclusão. Excluir a conta apaga tudo no Postgres; os traces no Langfuse permanecem, e o consentimento avisa (RNF-07 e RNF-16).
 
 ## Fora do escopo desta fatia
 
@@ -110,7 +110,7 @@ O backend é quem guarda a lembrança devolvida e a manda de volta na próxima p
 
 - **Onde entra:** no prompt da Análise (`{{historico}}`) e na decisão de continuação do Orquestrador. Não vira parâmetro: UF, ocupação e salário vêm só da pergunta atual ou da lembrança.
 - **Continuação:** hoje "e se eu tiver 5 anos de experiência?" cai em fora de escopo. Com histórico limpo, uma pergunta sem tema próprio que comece como continuação ("e se", "e para", "explica", "por quê", "qual deles") herda a intenção da lembrança. "Qual a capital da França?" continua fora de escopo.
-- **Experiência:** os agregados da RAIS não têm esse recorte. A resposta diz isso e mantém os números do grupo; nunca estima.
+- **Experiência, escolaridade e jornada:** devem ser usadas (pedido da Amanda em 24/11), vindas do currículo ou da conversa. O cálculo é da `estimar_faixa` (artemishub_agents#53 e #54); a leitura do currículo é a artemishub_agents#14 e o perfil, a artemishub_backend#3. Até existirem, a resposta explica que o número ainda não considera a experiência, mostra a faixa do grupo e pode orientar com base no que a usuária contou, sem inventar valor.
 - **O que entra na memória curta:** só trocas com `aprovada=true`. Ficam de fora as bloqueadas, as abstenções, as fora de escopo e os erros.
 - **Quem limpa:** o backend manda o texto como foi exibido; o agents remove "Limites", "Fontes" e citações e só depois corta (500/800 caracteres). A limpeza fica perto do LLM e testada num lugar só.
 - **Salário no histórico:** o texto antigo pode trazer um salário, mas ele não conta como número permitido. Só o salário da pergunta atual pode aparecer na resposta nova.
@@ -146,5 +146,5 @@ O backend é quem guarda a lembrança devolvida e a manda de volta na próxima p
 ## Decisões em aberto (para o time)
 
 - Prazo de retenção automático das conversas e o texto do consentimento: ADR de LGPD. O consentimento precisa citar o Gemini e o Langfuse, que recebem o texto das perguntas.
-- **Exclusão no Langfuse:** apagar a conversa no Postgres não apaga os traces. Para "excluir a conta apaga tudo" ser verdade, ou a exclusão também remove os traces da sessão, ou o texto do consentimento diz que eles permanecem.
+- **Exclusão no Langfuse (decidido pela Amanda em 24/11):** excluir a conta apaga tudo no Postgres, mas **não** apaga os traces. O texto do consentimento precisa dizer isso, e o ADR de LGPD precisa justificar a retenção (os traces contêm o texto das perguntas).
 - **Divisão com a Eduarda:** a artemishub_agents#36 e a artemishub_backend#10 são dela. Esta fatia precisa de um `POST /v1/responder`: ela faz, ou a Amanda faz o mínimo e ela evolui?
