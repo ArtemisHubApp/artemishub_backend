@@ -18,6 +18,7 @@ from artemis_backend.domain.conversa import (
     Mensagem,
     NovaResposta,
     PerguntaIniciada,
+    RespostaExpirada,
 )
 
 # now() é o começo da transação, que pode ter esperado pela trava; a ordem das mensagens e a
@@ -77,7 +78,7 @@ class RepositorioPerguntasSql:
         async with self._sessoes() as sessao, sessao.begin():
             trava = (await sessao.execute(travar)).one_or_none()
             if trava is None:
-                await self._sem_trava(sessao, usuaria_id, conversa_id)
+                await self._sem_trava(sessao, usuaria_id, conversa_id, ConversaOcupada)
             anteriores = tuple(para_mensagem(m) for m in await sessao.scalars(ler_anteriores))
             pergunta = para_mensagem((await sessao.scalars(gravar)).one())
         return PerguntaIniciada(pergunta, anteriores, trava.lembranca, trava.respondendo_desde)
@@ -115,7 +116,7 @@ class RepositorioPerguntasSql:
         )
         async with self._sessoes() as sessao, sessao.begin():
             if await sessao.scalar(soltar) is None:
-                await self._sem_trava(sessao, usuaria_id, conversa_id)
+                await self._sem_trava(sessao, usuaria_id, conversa_id, RespostaExpirada)
             return para_mensagem((await sessao.scalars(gravar)).one())
 
     async def liberar_trava(
@@ -139,11 +140,14 @@ class RepositorioPerguntasSql:
 
     @staticmethod
     async def _sem_trava(
-        sessao: AsyncSession, usuaria_id: uuid.UUID, conversa_id: uuid.UUID
+        sessao: AsyncSession,
+        usuaria_id: uuid.UUID,
+        conversa_id: uuid.UUID,
+        motivo: type[Exception],
     ) -> NoReturn:
         existe = await sessao.scalar(
             select(LinhaConversa.id).where(
                 LinhaConversa.id == conversa_id, LinhaConversa.usuaria_id == usuaria_id
             )
         )
-        raise ConversaInexistente if existe is None else ConversaOcupada
+        raise ConversaInexistente if existe is None else motivo

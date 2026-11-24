@@ -1,6 +1,6 @@
 import uuid
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, PlainSerializer, StrictStr, field_validator
 
@@ -57,3 +57,13 @@ class PedidoPergunta(BaseModel):
 class PerguntaRespondidaSaida(BaseModel):
     pergunta: MensagemSaida
     resposta: MensagemSaida
+
+
+Motivo = Literal["ocupada", "expirada"]
+
+
+class ErroDeConflito(BaseModel):
+    """`ocupada`: a pergunta não foi gravada. `expirada`: foi, mas a resposta se perdeu."""
+
+    detail: str
+    codigo: Motivo

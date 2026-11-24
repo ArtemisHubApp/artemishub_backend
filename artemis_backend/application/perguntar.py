@@ -11,10 +11,10 @@ from artemis_backend.application.portas import (
 )
 from artemis_backend.domain.conversa import (
     ConversaInexistente,
-    ConversaOcupada,
     Mensagem,
     NovaResposta,
     PerguntaIniciada,
+    RespostaExpirada,
     memoria_curta,
     titulo_da_conversa,
 )
@@ -50,7 +50,7 @@ class ServicoPerguntas:
         try:
             obtida = await self._responder(conversa_id, iniciada)
             resposta = await self._concluir(usuaria_id, conversa_id, iniciada, obtida)
-        except (ConversaInexistente, ConversaOcupada):
+        except (ConversaInexistente, RespostaExpirada):
             raise  # a trava já não é desta pergunta
         except BaseException:
             # BaseException inclui o cancelamento (desligamento da API).

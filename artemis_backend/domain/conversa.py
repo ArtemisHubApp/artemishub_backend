@@ -19,7 +19,11 @@ class ConversaInexistente(Exception):
 
 
 class ConversaOcupada(Exception):
-    """Já há uma pergunta em andamento, ou a trava desta pergunta passou para outra."""
+    """Já há uma pergunta em andamento; a nova não foi gravada."""
+
+
+class RespostaExpirada(Exception):
+    """A trava expirou e passou para outra: a pergunta ficou gravada, a resposta não."""
 
 
 class UsuariaInexistente(Exception):

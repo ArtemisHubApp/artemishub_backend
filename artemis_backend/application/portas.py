@@ -91,7 +91,7 @@ class RepositorioPerguntas(Protocol):
         """Grava a resposta e solta a trava, tudo ou nada; `lembranca` None mantém a atual.
 
         Sem a trava obtida em `respondendo_desde`, não grava nada: ConversaInexistente se a
-        conversa sumiu, ConversaOcupada se a trava expirou e passou para outra pergunta.
+        conversa sumiu, RespostaExpirada se a trava expirou e passou para outra pergunta.
         """
 
     async def liberar_trava(

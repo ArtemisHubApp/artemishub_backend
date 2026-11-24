@@ -1,19 +1,30 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request, status
+from fastapi.responses import JSONResponse
 
 from artemis_backend.adapters.autenticacao import Usuaria
 from artemis_backend.adapters.conversa_inexistente import nao_encontrada
-from artemis_backend.adapters.esquemas_conversas import PedidoPergunta, PerguntaRespondidaSaida
+from artemis_backend.adapters.esquemas_conversas import (
+    ErroDeConflito,
+    Motivo,
+    PedidoPergunta,
+    PerguntaRespondidaSaida,
+)
 from artemis_backend.application.perguntar import ServicoPerguntas
-from artemis_backend.domain.conversa import ConversaInexistente, ConversaOcupada
+from artemis_backend.domain.conversa import ConversaInexistente, ConversaOcupada, RespostaExpirada
 
 roteador = APIRouter(prefix="/v1/conversas", tags=["conversas"])
 
 
 def _perguntas(request: Request) -> ServicoPerguntas:
     return request.app.state.perguntas
+
+
+def _conflito(codigo: Motivo, detail: str) -> JSONResponse:
+    erro = ErroDeConflito(detail=detail, codigo=codigo)
+    return JSONResponse(erro.model_dump(), status.HTTP_409_CONFLICT)
 
 
 Perguntas = Annotated[ServicoPerguntas, Depends(_perguntas)]
@@ -32,7 +43,9 @@ async def perguntar(
     except ConversaInexistente:
         raise nao_encontrada() from None
     except ConversaOcupada:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "Já há uma pergunta em andamento nesta conversa"
-        ) from None
+        return _conflito("ocupada", "Já há uma pergunta em andamento nesta conversa")
+    except RespostaExpirada:
+        return _conflito(
+            "expirada", "A resposta demorou demais e foi descartada; a pergunta está no histórico"
+        )
     return {"pergunta": pergunta, "resposta": resposta}
