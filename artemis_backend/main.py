@@ -10,9 +10,11 @@ from artemis_backend.adapters.banco import criar_fabrica_de_sessoes, criar_motor
 from artemis_backend.adapters.erros import ProtegeErros
 from artemis_backend.adapters.repositorio_contas import RepositorioContasSql
 from artemis_backend.adapters.repositorio_conversas import RepositorioConversasSql
+from artemis_backend.adapters.repositorio_perguntas import RepositorioPerguntasSql
 from artemis_backend.adapters.rotas_auth import roteador as rotas_auth
 from artemis_backend.adapters.rotas_conta import roteador as rotas_conta
 from artemis_backend.adapters.rotas_conversas import roteador as rotas_conversas
+from artemis_backend.adapters.rotas_perguntas import roteador as rotas_perguntas
 from artemis_backend.adapters.seguranca import EmissorJwt, HasherArgon2, RelogioDoSistema
 from artemis_backend.adapters.sem_cache import SemCache
 from artemis_backend.application.contas import ServicoContas
@@ -54,12 +56,12 @@ def criar_app(config: Config, agentes: Agentes | None = None) -> FastAPI:
         emissor=EmissorJwt(config.jwt_segredo, relogio),
         relogio=relogio,
     )
-    conversas = RepositorioConversasSql(sessoes)
     app.state.agentes = agentes or proprios
-    app.state.conversas = ServicoConversas(conversas)
-    app.state.perguntas = ServicoPerguntas(conversas, app.state.agentes)
+    app.state.conversas = ServicoConversas(RepositorioConversasSql(sessoes))
+    app.state.perguntas = ServicoPerguntas(RepositorioPerguntasSql(sessoes), app.state.agentes)
     app.include_router(rotas_auth)
     app.include_router(rotas_conversas)
+    app.include_router(rotas_perguntas)
     app.include_router(rotas_conta)
     app.add_middleware(ProtegeErros)
     # Por último para ficar por fora e alcançar as respostas do ProtegeErros.

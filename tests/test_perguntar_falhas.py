@@ -7,7 +7,7 @@ import pytest
 
 from artemis_backend.adapters.agentes_http import AgentesHttp
 from artemis_backend.adapters.banco import BancoIndisponivel, criar_fabrica_de_sessoes
-from artemis_backend.adapters.repositorio_conversas import RepositorioConversasSql
+from artemis_backend.adapters.repositorio_perguntas import RepositorioPerguntasSql
 from artemis_backend.application.perguntar import AgentesIndisponiveis, ServicoPerguntas
 from tests.apoio.banco import linha, mudar
 from tests.apoio.conversas import LEMBRANCA, TEXTO_INDISPONIVEL
@@ -43,7 +43,7 @@ async def test_rota_com_agentes_http_respondendo_500(app, perguntar, mensagens, 
     agentes_http = AgentesHttp(
         "http://agentes.invalid", "token", transporte=httpx.MockTransport(atender)
     )
-    repositorio = RepositorioConversasSql(criar_fabrica_de_sessoes(app.state.motor))
+    repositorio = RepositorioPerguntasSql(criar_fabrica_de_sessoes(app.state.motor))
     app.state.perguntas = ServicoPerguntas(repositorio, agentes_http)
     r = await perguntar()
     await agentes_http.fechar()
@@ -102,7 +102,7 @@ async def test_falha_ao_liberar_nao_esconde_o_erro_original(
     async def quebra(*_):
         raise BancoIndisponivel
 
-    monkeypatch.setattr(RepositorioConversasSql, "liberar_trava", quebra)
+    monkeypatch.setattr(RepositorioPerguntasSql, "liberar_trava", quebra)
     agentes.erro = RuntimeError("falha")
     assert (await perguntar()).status_code == 500
     assert "RuntimeError" in caplog.text and "BancoIndisponivel" in caplog.text
@@ -115,7 +115,7 @@ async def test_falha_ao_gravar_a_resposta_libera_a_trava(
         raise BancoIndisponivel
 
     with monkeypatch.context() as m:
-        m.setattr(RepositorioConversasSql, "concluir_pergunta", quebra)
+        m.setattr(RepositorioPerguntasSql, "concluir_pergunta", quebra)
         assert (await perguntar("p1")).status_code == 503
     assert (await linha(sessao, conversa)).respondendo_desde is None
     assert [m["texto"] for m in await mensagens()] == ["p1"]

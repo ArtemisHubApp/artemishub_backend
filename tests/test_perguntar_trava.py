@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func
 
 from artemis_backend.adapters.banco import criar_fabrica_de_sessoes
-from artemis_backend.adapters.repositorio_conversas import RepositorioConversasSql
+from artemis_backend.adapters.repositorio_perguntas import RepositorioPerguntasSql
 from artemis_backend.domain.conversa import NovaResposta
 from tests.apoio.agentes import resposta_dos_agentes
 from tests.apoio.banco import linha, mudar, total_de_mensagens
@@ -75,7 +75,7 @@ async def test_trava_vencida_e_nao_tomada_ainda_grava_a_resposta(app, sessao, co
     desde = datetime.now(UTC) - timedelta(seconds=61)
     await mudar(sessao, conversa, respondendo_desde=desde)
     dona = (await linha(sessao, conversa)).usuaria_id
-    repositorio = RepositorioConversasSql(criar_fabrica_de_sessoes(app.state.motor))
+    repositorio = RepositorioPerguntasSql(criar_fabrica_de_sessoes(app.state.motor))
     resposta = NovaResposta(uuid.uuid4(), "no limite", False, False, None, None)
     gravada = await repositorio.concluir_pergunta(dona, uuid.UUID(conversa), desde, resposta, None)
     assert gravada.texto == "no limite"

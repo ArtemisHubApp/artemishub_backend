@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import func, select
 
 from artemis_backend.adapters.banco import criar_fabrica_de_sessoes
-from artemis_backend.adapters.repositorio_conversas import RepositorioConversasSql
+from artemis_backend.adapters.repositorio_perguntas import RepositorioPerguntasSql
 from artemis_backend.adapters.tabelas import Mensagem
 from artemis_backend.application.perguntar import AgentesIndisponiveis
 from artemis_backend.domain.conversa import ConversaInexistente, NovaResposta
@@ -82,7 +82,7 @@ async def test_repositorio_filtra_pela_dona_ao_concluir_e_liberar(
     tarefa = asyncio.create_task(perguntar())
     await asyncio.wait_for(agentes.chamado.wait(), 10)
     desde = (await linha(sessao, conversa)).respondendo_desde
-    repositorio = RepositorioConversasSql(criar_fabrica_de_sessoes(app.state.motor))
+    repositorio = RepositorioPerguntasSql(criar_fabrica_de_sessoes(app.state.motor))
     outra, id_ = uuid.uuid4(), uuid.UUID(conversa)
     await repositorio.liberar_trava(outra, id_, desde)
     resposta = NovaResposta(uuid.uuid4(), "intrusa", True, False, None, None)

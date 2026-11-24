@@ -63,7 +63,7 @@ async def test_id_malformado_responde_422(cliente, entrar_como):
 
 
 async def test_conta_apagada_antes_de_criar_conversa_responde_401(app, cliente, sessao, caplog):
-    from artemis_backend.adapters.rotas_auth import usuaria_atual
+    from artemis_backend.adapters.autenticacao import usuaria_atual
 
     fantasma = uuid.uuid4()
     app.dependency_overrides[usuaria_atual] = lambda: fantasma

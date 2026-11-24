@@ -5,7 +5,7 @@ import uuid
 import pytest
 from sqlalchemy import text
 
-from artemis_backend.adapters.rotas_auth import usuaria_atual
+from artemis_backend.adapters.autenticacao import usuaria_atual
 from artemis_backend.adapters.tabelas import Conversa, Mensagem, Usuaria
 from artemis_backend.domain.usuaria import TokenInvalido
 from tests.apoio.agentes import resposta_dos_agentes

@@ -4,7 +4,7 @@ from dataclasses import replace
 import httpx
 import pytest_asyncio
 
-from artemis_backend.adapters.rotas_auth import usuaria_atual
+from artemis_backend.adapters.autenticacao import usuaria_atual
 from artemis_backend.main import criar_app
 from tests.apoio.sessao import (
     APAGADO,

@@ -13,7 +13,7 @@ from alembic import command
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from artemis_backend.adapters.rotas_auth import usuaria_atual
+from artemis_backend.adapters.autenticacao import usuaria_atual
 from artemis_backend.main import criar_app
 from tests.apoio.banco import config_alembic
 from tests.apoio.sessao import token

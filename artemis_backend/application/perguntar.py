@@ -6,7 +6,7 @@ from datetime import datetime
 from artemis_backend.application.portas import (
     Agentes,
     AgentesIndisponiveis,
-    RepositorioConversas,
+    RepositorioPerguntas,
     RespostaAgentes,
 )
 from artemis_backend.domain.conversa import (
@@ -33,7 +33,7 @@ _INDISPONIVEL = RespostaAgentes(
 
 
 class ServicoPerguntas:
-    def __init__(self, repositorio: RepositorioConversas, agentes: Agentes) -> None:
+    def __init__(self, repositorio: RepositorioPerguntas, agentes: Agentes) -> None:
         self._repositorio = repositorio
         self._agentes = agentes
         # Referência forte: o laço de eventos só guarda referência fraca das tarefas.
