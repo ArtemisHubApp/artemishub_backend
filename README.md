@@ -38,7 +38,7 @@ Python 3.12, [uv](https://docs.astral.sh/uv/), FastAPI, SQLAlchemy 2 (async) com
      -e POSTGRES_DB=artemis -p 5432:5432 -d postgres:16
    ```
 
-3. Copie `.env.example` para `.env` e preencha as variáveis: `DATABASE_URL`, `ARTEMIS_JWT_SEGREDO`, `ARTEMIS_AGENTS_URL` e `ARTEMIS_AGENTS_TOKEN`. A API não sobe sem `ARTEMIS_JWT_SEGREDO`, que precisa ter pelo menos 32 bytes (use um valor aleatório). Na `DATABASE_URL`, a `<senha>` é a mesma `POSTGRES_PASSWORD` do passo 2. Nunca commite o `.env`.
+3. Copie `.env.example` para `.env` e preencha as variáveis: `DATABASE_URL`, `ARTEMIS_JWT_SEGREDO`, `ARTEMIS_AGENTS_URL` e `ARTEMIS_AGENTS_TOKEN`. `ARTEMIS_JWT_SEGREDO` e `ARTEMIS_AGENTS_TOKEN` vêm vazios no `.env.example` de propósito: gere o segredo (`openssl rand -base64 48`, ou `python -c "import secrets; print(secrets.token_urlsafe(48))"` no Windows) e peça o token dos agentes à equipe. A API não sobe sem `ARTEMIS_JWT_SEGREDO`, que precisa ter pelo menos 32 bytes. Na `DATABASE_URL`, a `<senha>` é a mesma `POSTGRES_PASSWORD` do passo 2. Nunca commite o `.env`.
 4. Aplique as migrações: `uv run --env-file .env alembic upgrade head`.
 5. Inicie a API: `uv run --env-file .env uvicorn artemis_backend.main:app_de_ambiente --factory`. Teste em `http://localhost:8000/health`.
 
@@ -78,7 +78,7 @@ Se o banco recusar, cair ou não responder (5 s para conectar, 10 s por comando)
 
 As datas saem em UTC (`...Z`). A lista ainda não tem paginação.
 
-Nova migração: `uv run alembic revision --autogenerate -m "<descrição>"` e revise o arquivo gerado.
+Nova migração: `uv run --env-file .env alembic revision --autogenerate -m "<descrição>"` e revise o arquivo gerado.
 
 ## 🧪 Testes
 
