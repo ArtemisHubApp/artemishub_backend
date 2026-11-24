@@ -147,4 +147,4 @@ O backend é quem guarda a lembrança devolvida e a manda de volta na próxima p
 
 - Prazo de retenção automático das conversas e o texto do consentimento: ADR de LGPD. O consentimento precisa citar o Gemini e o Langfuse, que recebem o texto das perguntas.
 - **Exclusão no Langfuse (decidido pela Amanda em 24/11):** excluir a conta apaga tudo no Postgres, mas **não** apaga os traces. O texto do consentimento precisa dizer isso, e o ADR de LGPD precisa justificar a retenção (os traces contêm o texto das perguntas).
-- **Divisão com a Eduarda:** a artemishub_agents#36 e a artemishub_backend#10 são dela. Esta fatia precisa de um `POST /v1/responder`: ela faz, ou a Amanda faz o mínimo e ela evolui?
+- **Divisão com a Eduarda (decidido em 24/11):** o `POST /v1/responder` é dela, na artemishub_agents#36, onde está o rascunho do contrato. O backend usa um cliente falso até o contrato fechar.
