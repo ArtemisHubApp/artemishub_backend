@@ -7,7 +7,9 @@ import pytest_asyncio
 from sqlalchemy import func, select, text
 
 from artemis_backend.adapters.banco import criar_fabrica_de_sessoes
+from artemis_backend.adapters.rotas_auth import usuaria_atual
 from artemis_backend.adapters.tabelas import Conversa, Mensagem, Usuaria
+from artemis_backend.domain.usuaria import TokenInvalido
 from tests.conftest import SENHA_DE_TESTE, resposta_dos_agentes
 
 MENSAGENS_NO_VOLUME = 60_000
@@ -70,27 +72,39 @@ async def test_excluir_conta_apaga_tudo_dela_e_nada_das_outras(cliente, entrar_c
     assert depois_da_bia.json() == antes_da_bia
 
 
-@pytest.mark.parametrize(
-    ("metodo", "caminho"),
-    [
-        ("GET", "/v1/conversas"),
-        ("POST", "/v1/conversas"),
-        ("GET", f"/v1/conversas/{uuid.uuid4()}"),
-        ("DELETE", f"/v1/conversas/{uuid.uuid4()}"),
-        ("POST", f"/v1/conversas/{uuid.uuid4()}/mensagens"),
-        ("DELETE", "/v1/conta"),
-    ],
-)
-async def test_token_de_conta_excluida_responde_401(cliente, entrar_como, metodo, caminho):
+ROTAS_PUBLICAS = {
+    ("GET", "/health"),
+    ("POST", "/v1/auth/cadastro"),
+    ("POST", "/v1/auth/login"),
+    ("GET", "/v1/consentimento"),
+}
+
+
+def rotas_protegidas(app) -> list[tuple[str, str]]:
+    # O OpenAPI lista todas as rotas já com o prefixo, o que app.routes não faz mais.
+    achadas = {
+        (metodo.upper(), caminho)
+        for caminho, operacoes in app.openapi()["paths"].items()
+        for metodo in operacoes
+    }
+    return sorted(achadas - ROTAS_PUBLICAS)
+
+
+async def test_token_de_conta_excluida_responde_401_em_toda_rota_protegida(
+    app, cliente, entrar_como
+):
     ana = await entrar_como(ANA)
     assert (await cliente.delete("/v1/conta", headers=ana)).status_code == 204
     invalido = await cliente.get("/v1/conversas", headers={"Authorization": "Bearer lixo"})
+    rotas = rotas_protegidas(app)
+    assert ("DELETE", "/v1/conta") in rotas and ("GET", "/v1/conversas") in rotas
 
-    r = await cliente.request(metodo, caminho, headers=ana, json={"pergunta": "oi"})
-
-    assert r.status_code == 401
-    assert r.json() == invalido.json()
-    assert r.headers["WWW-Authenticate"] == "Bearer"
+    for metodo, caminho in rotas:
+        url = caminho.replace("{conversa_id}", str(uuid.uuid4()))
+        r = await cliente.request(metodo, url, headers=ana, json={"pergunta": "oi"})
+        assert r.status_code == 401, (metodo, caminho)
+        assert r.json() == invalido.json()
+        assert r.headers["WWW-Authenticate"] == "Bearer"
 
 
 async def test_login_de_conta_excluida_responde_401(cliente, entrar_como):
@@ -116,6 +130,34 @@ async def test_email_pode_ser_cadastrado_de_novo(cliente, entrar_como):
     assert (await cliente.get("/v1/conversas", headers=ana)).status_code == 401
 
 
+async def test_servico_excluir_duas_vezes_recusa_a_segunda(app, cliente, entrar_como):
+    ana = await entrar_como(ANA)
+    id_ = await app.state.contas.usuaria_do_token(ana["Authorization"].removeprefix("Bearer "))
+
+    await app.state.contas.excluir(id_)
+
+    with pytest.raises(TokenInvalido):
+        await app.state.contas.excluir(id_)
+
+
+async def test_rota_com_conta_ja_excluida_responde_401_igual_ao_token_invalido(
+    app, cliente, entrar_como
+):
+    ana = await entrar_como(ANA)
+    id_ = await app.state.contas.usuaria_do_token(ana["Authorization"].removeprefix("Bearer "))
+    await app.state.contas.excluir(id_)
+    invalido = await cliente.get("/v1/conversas", headers={"Authorization": "Bearer lixo"})
+    app.dependency_overrides[usuaria_atual] = lambda: id_
+    try:
+        r = await cliente.delete("/v1/conta")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert r.status_code == 401
+    assert r.json() == invalido.json()
+    assert r.headers["WWW-Authenticate"] == "Bearer"
+
+
 async def test_duas_exclusoes_ao_mesmo_tempo(cliente, entrar_como, sessao):
     ana = await entrar_como(ANA)
     invalido = await cliente.get("/v1/conversas", headers={"Authorization": "Bearer lixo"})
@@ -127,13 +169,6 @@ async def test_duas_exclusoes_ao_mesmo_tempo(cliente, entrar_como, sessao):
         if r.status_code == 401:
             assert r.json() == invalido.json()
     assert await contar(sessao, Usuaria) == 0
-
-
-async def test_exclusao_so_apaga_a_dona_do_token(cliente, entrar_como, sessao):
-    ana, bia = await entrar_como(ANA), await entrar_como(BIA)
-    await cliente.delete("/v1/conta", headers=ana)
-    assert (await cliente.get("/v1/conversas", headers=bia)).status_code == 200
-    assert await contar(sessao, Usuaria, email=BIA) == 1
 
 
 async def test_conta_excluida_durante_a_pergunta(cliente, entrar_como, sessao, agentes):
