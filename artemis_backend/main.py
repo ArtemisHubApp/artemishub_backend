@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from artemis_backend.adapters.agentes_http import AgentesHttp
 from artemis_backend.adapters.banco import criar_fabrica_de_sessoes, criar_motor
@@ -22,6 +23,10 @@ from artemis_backend.application.conversas import ServicoConversas
 from artemis_backend.application.perguntar import ServicoPerguntas
 from artemis_backend.application.portas import Agentes
 from artemis_backend.config import Config
+
+
+class Saude(BaseModel):
+    status: str
 
 
 async def _validacao_sem_eco(_: Request, erro: RequestValidationError) -> JSONResponse:
@@ -68,8 +73,8 @@ def criar_app(config: Config, agentes: Agentes | None = None) -> FastAPI:
     app.add_middleware(SemCache)
 
     @app.get("/health")
-    async def saude() -> dict[str, str]:
-        return {"status": "ok"}
+    async def saude() -> Saude:
+        return Saude(status="ok")
 
     return app
 

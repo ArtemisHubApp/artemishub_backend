@@ -18,6 +18,7 @@ from artemis_backend.adapters.esquemas_conversas import (
     ConversaSaida,
     PaginaDeConversasSaida,
 )
+from artemis_backend.adapters.esquemas_de_erro import erros
 from artemis_backend.application.conversas import ServicoConversas
 from artemis_backend.domain.conversa import (
     PAGINA_MAXIMA,
@@ -49,7 +50,7 @@ def _posicao_do_cursor(
         raise RequestValidationError([erro]) from None
 
 
-@roteador.get("", response_model=PaginaDeConversasSaida)
+@roteador.get("", response_model=PaginaDeConversasSaida, responses=erros(401, 422, 503))
 async def listar(
     usuaria_id: Usuaria,
     servico: Servico,
@@ -61,7 +62,12 @@ async def listar(
     return {"itens": pagina.itens, "proximo": proximo}
 
 
-@roteador.post("", status_code=status.HTTP_201_CREATED, response_model=ConversaSaida)
+@roteador.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ConversaSaida,
+    responses=erros(401, 403, 503),
+)
 async def criar(usuaria_id: Usuaria, servico: Servico):
     try:
         return await servico.criar(usuaria_id)
@@ -70,7 +76,9 @@ async def criar(usuaria_id: Usuaria, servico: Servico):
         raise token_invalido() from None
 
 
-@roteador.get("/{conversa_id}", response_model=ConversaDetalheSaida)
+@roteador.get(
+    "/{conversa_id}", response_model=ConversaDetalheSaida, responses=erros(401, 404, 422, 503)
+)
 async def detalhar(conversa_id: uuid.UUID, usuaria_id: Usuaria, servico: Servico):
     try:
         historico = await servico.obter(usuaria_id, conversa_id)
@@ -79,13 +87,17 @@ async def detalhar(conversa_id: uuid.UUID, usuaria_id: Usuaria, servico: Servico
     return {**dataclasses.asdict(historico.conversa), "mensagens": historico.mensagens}
 
 
-@roteador.delete("", status_code=status.HTTP_204_NO_CONTENT)
+@roteador.delete("", status_code=status.HTTP_204_NO_CONTENT, responses=erros(401, 403, 503))
 async def apagar_todas(usuaria_id: Usuaria, servico: Servico) -> Response:
     await servico.apagar_todas(usuaria_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@roteador.delete("/{conversa_id}", status_code=status.HTTP_204_NO_CONTENT)
+@roteador.delete(
+    "/{conversa_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=erros(401, 403, 404, 422, 503),
+)
 async def apagar(conversa_id: uuid.UUID, usuaria_id: Usuaria, servico: Servico) -> Response:
     try:
         await servico.apagar(usuaria_id, conversa_id)

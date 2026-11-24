@@ -12,6 +12,7 @@ from artemis_backend.adapters.esquemas_conversas import (
     PedidoPergunta,
     PerguntaRespondidaSaida,
 )
+from artemis_backend.adapters.esquemas_de_erro import erros
 from artemis_backend.application.perguntar import ServicoPerguntas
 from artemis_backend.domain.conversa import ConversaInexistente, ConversaOcupada, RespostaExpirada
 
@@ -34,6 +35,10 @@ Perguntas = Annotated[ServicoPerguntas, Depends(_perguntas)]
     "/{conversa_id}/mensagens",
     status_code=status.HTTP_201_CREATED,
     response_model=PerguntaRespondidaSaida,
+    responses={
+        **erros(401, 403, 404, 422, 503),
+        409: {"model": ErroDeConflito, "description": "Conversa ocupada ou resposta expirada"},
+    },
 )
 async def perguntar(
     conversa_id: uuid.UUID, pedido: PedidoPergunta, usuaria_id: Usuaria, servico: Perguntas

@@ -4,14 +4,16 @@ import uuid
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
 
 from artemis_backend.adapters.origem import exigir_origem_sem_authorization
-from artemis_backend.adapters.sessao import cookies_de_sessao
+from artemis_backend.adapters.sessao import NOME_DO_COOKIE, cookies_de_sessao
 from artemis_backend.application.contas import ServicoContas
 from artemis_backend.domain.usuaria import TokenInvalido
 
-_bearer = HTTPBearer(auto_error=False)
+_bearer = HTTPBearer(scheme_name="bearer", auto_error=False)
+# Só documenta o cookie no OpenAPI; quem lê é sessao.py, que enxerga os repetidos.
+_cookie = APIKeyCookie(name=NOME_DO_COOKIE, scheme_name="cookie", auto_error=False)
 
 
 def _servico(request: Request) -> ServicoContas:
@@ -46,6 +48,7 @@ async def usuaria_atual(
     _origem: Annotated[None, Depends(exigir_origem_sem_authorization)],
     contas: Contas,
     credenciais: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+    _documentado: Annotated[str | None, Depends(_cookie)],
 ) -> uuid.UUID:
     """Id da usuária do token; 401 se faltar, for inválido, vencido ou de usuária inexistente."""
     try:

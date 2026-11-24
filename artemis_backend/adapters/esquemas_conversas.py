@@ -28,7 +28,7 @@ class PaginaDeConversasSaida(BaseModel):
 
 class MensagemSaida(BaseModel):
     id: uuid.UUID
-    papel: str
+    papel: Literal["usuaria", "artemis"]
     texto: str
     criada_em: DataUtc
     aprovada: bool

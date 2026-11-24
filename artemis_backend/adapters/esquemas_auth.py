@@ -1,3 +1,6 @@
+import uuid
+from typing import Literal
+
 from pydantic import BaseModel, Field, StrictBool, field_validator
 
 from artemis_backend.domain.usuaria import (
@@ -36,3 +39,21 @@ class PedidoCadastro(_PedidoComEmail):
 class PedidoLogin(_PedidoComEmail):
     # Sem mínimo: senha curta é só senha errada. O máximo evita gastar CPU com entrada enorme.
     senha: str = Field(max_length=SENHA_MAXIMA)
+
+
+class CadastroSaida(BaseModel):
+    id: uuid.UUID
+
+
+class LoginSaida(BaseModel):
+    token: str
+    tipo: Literal["bearer"]
+
+
+class ContaSaida(BaseModel):
+    id: uuid.UUID
+    email: str
+
+
+class ConsentimentoSaida(BaseModel):
+    texto: str
