@@ -5,9 +5,12 @@ from fastapi.responses import JSONResponse
 from artemis_backend.adapters.banco import criar_fabrica_de_sessoes, criar_motor
 from artemis_backend.adapters.erros import ProtegeErros
 from artemis_backend.adapters.repositorio_contas import RepositorioContasSql
+from artemis_backend.adapters.repositorio_conversas import RepositorioConversasSql
 from artemis_backend.adapters.rotas_auth import roteador as rotas_auth
+from artemis_backend.adapters.rotas_conversas import roteador as rotas_conversas
 from artemis_backend.adapters.seguranca import EmissorJwt, HasherArgon2, RelogioDoSistema
 from artemis_backend.application.contas import ServicoContas
+from artemis_backend.application.conversas import ServicoConversas
 from artemis_backend.config import Config
 
 
@@ -24,14 +27,17 @@ def criar_app(config: Config) -> FastAPI:
 
     # O motor só conecta no primeiro uso, então criar o app não exige o banco no ar.
     app.state.motor = criar_motor(config.database_url)
+    sessoes = criar_fabrica_de_sessoes(app.state.motor)
     relogio = RelogioDoSistema()
     app.state.contas = ServicoContas(
-        repositorio=RepositorioContasSql(criar_fabrica_de_sessoes(app.state.motor)),
+        repositorio=RepositorioContasSql(sessoes),
         hasher=HasherArgon2(),
         emissor=EmissorJwt(config.jwt_segredo, relogio),
         relogio=relogio,
     )
+    app.state.conversas = ServicoConversas(RepositorioConversasSql(sessoes))
     app.include_router(rotas_auth)
+    app.include_router(rotas_conversas)
     app.add_middleware(ProtegeErros)
 
     @app.get("/health")
