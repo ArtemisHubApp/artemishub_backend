@@ -4,7 +4,7 @@
 
 Este repositório contém a **API** do Artemis: a camada que conecta a interface web aos agentes de IA e à base de conhecimento, além de cuidar das regras de negócio, da autenticação e da persistência dos dados.
 
-> 🚧 **Em desenvolvimento.** Hoje só existe o esqueleto: a rota `GET /health`, o banco Postgres (tabelas `usuarias`, `conversas` e `mensagens`) e as migrações. Cadastro, login, conversas e a chamada aos agentes ainda não foram implementados.
+> 🚧 **Em desenvolvimento.** Hoje existem `GET /health`, o cadastro com consentimento (`POST /v1/auth/cadastro`), o login (`POST /v1/auth/login`), o banco Postgres (tabelas `usuarias`, `conversas` e `mensagens`) e as migrações. As conversas, o texto do consentimento e a chamada aos agentes ainda não foram implementados, e ainda não há rota protegida por token.
 
 ## 🎯 Responsabilidades
 
@@ -38,9 +38,18 @@ Python 3.12, [uv](https://docs.astral.sh/uv/), FastAPI, SQLAlchemy 2 (async) com
      -e POSTGRES_DB=artemis -p 5432:5432 -d postgres:16
    ```
 
-3. Copie `.env.example` para `.env` e preencha as variáveis: `DATABASE_URL`, `ARTEMIS_JWT_SEGREDO`, `ARTEMIS_AGENTS_URL` e `ARTEMIS_AGENTS_TOKEN`. A API não sobe sem `ARTEMIS_JWT_SEGREDO`. Nunca commite o `.env`.
+3. Copie `.env.example` para `.env` e preencha as variáveis: `DATABASE_URL`, `ARTEMIS_JWT_SEGREDO`, `ARTEMIS_AGENTS_URL` e `ARTEMIS_AGENTS_TOKEN`. A API não sobe sem `ARTEMIS_JWT_SEGREDO`, que precisa ter pelo menos 32 bytes (use um valor aleatório). Na `DATABASE_URL`, a `<senha>` é a mesma `POSTGRES_PASSWORD` do passo 2. Nunca commite o `.env`.
 4. Aplique as migrações: `uv run --env-file .env alembic upgrade head`.
 5. Inicie a API: `uv run --env-file .env uvicorn artemis_backend.main:app_de_ambiente --factory`. Teste em `http://localhost:8000/health`.
+
+### Rotas de autenticação
+
+| Rota | Corpo | Resposta |
+|---|---|---|
+| `POST /v1/auth/cadastro` | `email`, `senha` (8 a 128 caracteres), `consentimento` (precisa ser o booleano `true`) | 201 com `{"id": ...}`; 409 se o e-mail já existe; 422 se algo for inválido |
+| `POST /v1/auth/login` | `email`, `senha` | 200 com `{"token": ..., "tipo": "bearer"}` (JWT de 60 minutos, sem refresh); 401 para senha errada ou e-mail sem conta, com a mesma resposta |
+
+O e-mail é normalizado (espaços e maiúsculas) no cadastro e no login. A senha é guardada com argon2. As respostas 422 não repetem o que foi enviado.
 
 Nova migração: `uv run alembic revision --autogenerate -m "<descrição>"` e revise o arquivo gerado.
 
