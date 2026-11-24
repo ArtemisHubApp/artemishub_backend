@@ -34,7 +34,8 @@ async def test_post_e_delete_com_cookie_exigem_origin(app, cliente, entrar_como,
     conversa = (await cliente.post("/v1/conversas", headers=ana)).json()["id"]
     atacante = com_origem(ana, origem)
     inseguras = [(m, c) for m, c in rotas_protegidas(app) if m != "GET"]
-    assert {("DELETE", "/v1/conta"), ("POST", "/v1/conversas")} <= set(inseguras)
+    esperadas = {("DELETE", "/v1/conta"), ("DELETE", "/v1/conversas"), ("POST", "/v1/conversas")}
+    assert esperadas <= set(inseguras)
 
     for metodo, caminho in [*inseguras, ("POST", "/v1/auth/sair")]:
         url = caminho.replace("{conversa_id}", conversa)

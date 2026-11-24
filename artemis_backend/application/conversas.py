@@ -23,3 +23,6 @@ class ServicoConversas:
     async def apagar(self, usuaria_id: uuid.UUID, conversa_id: uuid.UUID) -> None:
         if not await self._repositorio.apagar(usuaria_id, conversa_id):
             raise ConversaInexistente
+
+    async def apagar_todas(self, usuaria_id: uuid.UUID) -> None:
+        await self._repositorio.apagar_todas(usuaria_id)

@@ -43,6 +43,12 @@ async def detalhar(conversa_id: uuid.UUID, usuaria_id: Usuaria, servico: Servico
     return {**dataclasses.asdict(historico.conversa), "mensagens": historico.mensagens}
 
 
+@roteador.delete("", status_code=status.HTTP_204_NO_CONTENT)
+async def apagar_todas(usuaria_id: Usuaria, servico: Servico) -> Response:
+    await servico.apagar_todas(usuaria_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @roteador.delete("/{conversa_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def apagar(conversa_id: uuid.UUID, usuaria_id: Usuaria, servico: Servico) -> Response:
     try:

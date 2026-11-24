@@ -54,6 +54,9 @@ class RepositorioConversas(Protocol):
     async def apagar(self, usuaria_id: uuid.UUID, conversa_id: uuid.UUID) -> bool:
         """Apaga a conversa e as mensagens; False se não existe (ou já foi apagada)."""
 
+    async def apagar_todas(self, usuaria_id: uuid.UUID) -> None:
+        """Apaga, de uma vez, as conversas e mensagens da usuária; nenhuma também vale."""
+
 
 class RepositorioPerguntas(Protocol):
     """A pergunta e a trava da conversa, sempre filtradas por `usuaria_id`."""

@@ -75,3 +75,9 @@ class RepositorioConversasSql:
         )
         async with self._sessoes() as sessao, sessao.begin():
             return await sessao.scalar(comando) is not None
+
+    async def apagar_todas(self, usuaria_id: uuid.UUID) -> None:
+        # O cascade do banco leva as mensagens.
+        comando = delete(LinhaConversa).where(LinhaConversa.usuaria_id == usuaria_id)
+        async with self._sessoes() as sessao, sessao.begin():
+            await sessao.execute(comando)
