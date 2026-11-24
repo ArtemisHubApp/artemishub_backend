@@ -7,7 +7,7 @@ As regras para agentes e pessoas vivem no orquestrador: [artemishub_orchestratio
 - Migrações: `uv run --env-file .env alembic upgrade head`.
 - Testar: `uv run pytest -q` (precisa do Docker rodando) e `uv run ruff check . && uv run ruff format --check .`.
 - Nunca registre em log o texto das mensagens, e-mail, tokens ou a senha do banco. Dados de teste só com `@example.com`.
-- Contas: `POST /v1/auth/cadastro` e `POST /v1/auth/login`. A dependência `usuaria_atual` (em `adapters/rotas_auth.py`) protege as rotas futuras e devolve o id da usuária; 401 para token ausente, inválido, vencido ou de usuária inexistente. `ARTEMIS_JWT_SEGREDO` exige pelo menos 32 bytes.
+- Contas: `POST /v1/auth/cadastro` e `POST /v1/auth/login`. A dependência `usuaria_atual` (em `adapters/rotas_auth.py`) protege as rotas de conversas e de conta e devolve o id da usuária; 401 para token ausente, inválido, vencido ou de usuária inexistente. `ARTEMIS_JWT_SEGREDO` exige pelo menos 32 bytes.
 - Hash de senha é pesado: chame sempre via `asyncio.to_thread`. Respostas 422 não podem repetir senha nem e-mail (`input` é removido em `main.py`).
 - Conversas: `GET/POST /v1/conversas`, `GET/DELETE /v1/conversas/{id}` e `POST /v1/conversas/{id}/mensagens` (`adapters/rotas_conversas.py`). Todo método de `RepositorioConversas` recebe `usuaria_id` e filtra por ele na mesma consulta; não existe busca só por id. Conversa de outra usuária responde 404, nunca 403. A resposta não expõe `usuaria_id`, `lembranca`, `respondendo_desde` nem `trace_id`.
 - Memória curta e título ficam em `domain/conversa.py` (`memoria_curta`, `titulo_da_conversa`).
