@@ -3,7 +3,6 @@ import copy
 import json
 import logging
 import time
-from pathlib import Path
 
 import httpx
 import jsonschema
@@ -14,9 +13,8 @@ from artemis_backend.application.perguntar import AgentesIndisponiveis, Resposta
 from artemis_backend.domain.conversa import Troca
 from artemis_backend.main import criar_app
 from tests.apoio.agentes import AgentesFake
+from tests.apoio.contrato import CONTRATO, validador
 
-RAIZ = Path(__file__).resolve().parent.parent
-CONTRATO = json.loads((RAIZ / "contratos" / "responder.v1.schema.json").read_text("utf-8"))
 TOKEN = "token-de-servico-de-teste"
 URL = "http://agentes.invalid"
 LEMBRANCA = {
@@ -115,19 +113,13 @@ async def responder(transporte=None, url=URL, timeout=5.0, **kw) -> RespostaAgen
         await agentes.fechar()
 
 
-def _validador(nome: str) -> jsonschema.Draft202012Validator:
-    return jsonschema.Draft202012Validator(
-        {"$ref": f"#/$defs/{nome}", "$defs": CONTRATO["$defs"]},
-    )
-
-
 def test_contrato_e_um_schema_valido():
     jsonschema.Draft202012Validator.check_schema(CONTRATO)
 
 
 @pytest.mark.parametrize("corpo", VALIDAS)
 async def test_resposta_valida_passa_no_adaptador_e_no_contrato(corpo):
-    assert _validador("resposta").is_valid(corpo)
+    assert validador("resposta").is_valid(corpo)
     r = await responder(devolve(corpo))
     assert (r.resposta, r.lembranca, r.trace_id) == (
         corpo["resposta"],
@@ -143,7 +135,7 @@ async def test_resposta_valida_passa_no_adaptador_e_no_contrato(corpo):
 
 @pytest.mark.parametrize("corpo", INVALIDAS, ids=range(len(INVALIDAS)))
 async def test_resposta_fora_do_schema_falha_no_adaptador_e_no_contrato(corpo):
-    assert not _validador("resposta").is_valid(corpo)
+    assert not validador("resposta").is_valid(corpo)
     with pytest.raises(AgentesIndisponiveis):
         await responder(devolve(corpo))
 
@@ -240,15 +232,15 @@ async def test_pedido_segue_o_contrato():
         "lembranca": LEMBRANCA,
     }
     for pedido in pedidos:
-        _validador("pedido").validate(pedido)
+        validador("pedido").validate(pedido)
 
 
 async def test_contrato_recusa_pedido_com_4_trocas_ou_campo_a_mais():
     troca = {"pergunta": "p", "resposta": "r"}
     pedido = {"pergunta": "p", "sessao": "s", "historico": [], "lembranca": None}
-    assert _validador("pedido").is_valid(pedido)
-    assert not _validador("pedido").is_valid({**pedido, "historico": [troca] * 4})
-    assert not _validador("pedido").is_valid({**pedido, "email": "a@example.com"})
+    assert validador("pedido").is_valid(pedido)
+    assert not validador("pedido").is_valid({**pedido, "historico": [troca] * 4})
+    assert not validador("pedido").is_valid({**pedido, "email": "a@example.com"})
 
 
 async def test_proxy_e_netrc_do_ambiente_sao_ignorados(monkeypatch, porta_fechada, tmp_path):
