@@ -1,7 +1,7 @@
 # Design: backend com histórico de conversas e memória curta da Artemis
 
 **Issue:** ArtemisHubApp/artemishub_backend#13. Relacionadas: #2 (scaffold), #3 (login e LGPD), #5 (integração com os agentes), ArtemisHubApp/artemishub_agents#36 (orquestrador como API) e ArtemisHubApp/artemishub_docs#3 (ADR-001, a stack).
-**Data:** 19/11/2026. Conversa de desenho com a Amanda.
+**Data:** 19/11/2026. Conversa de desenho com a Amanda. **Aprovado pela Amanda em 24/11/2026.**
 
 ## Por que
 
@@ -106,7 +106,7 @@ O backend é quem guarda a lembrança devolvida e a manda de volta na próxima p
 7. **Nada de persona:** sexo, raça e origem não são campos de nada. A referência para negociar é a mesma para todas (relatório de vieses).
 8. **Teste contrafactual:** o mesmo histórico, trocando só o gênero das palavras da usuária, precisa gerar os mesmos números e a mesma referência. Fica como teste automatizado com LLM simulado e como dataset no Langfuse.
 
-## Como a memória curta muda o comportamento (esclarecido na revisão, proposta a aprovar)
+## Como a memória curta muda o comportamento (esclarecido na revisão)
 
 - **Onde entra:** no prompt da Análise (`{{historico}}`) e na decisão de continuação do Orquestrador. Não vira parâmetro: UF, ocupação e salário vêm só da pergunta atual ou da lembrança.
 - **Continuação:** hoje "e se eu tiver 5 anos de experiência?" cai em fora de escopo. Com histórico limpo, uma pergunta sem tema próprio que comece como continuação ("e se", "e para", "explica", "por quê", "qual deles") herda a intenção da lembrança. "Qual a capital da França?" continua fora de escopo.
