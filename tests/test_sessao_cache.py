@@ -18,7 +18,7 @@ async def test_respostas_v1_nao_ficam_em_cache(app, cliente, entrar_como):
         ("GET", "/v1/consentimento", {}, 200),
         ("GET", "/v1/conta", ana, 200),
         ("POST", "/v1/auth/sair", {}, 204),
-        ("GET", "/v1/conversas/", {}, 307),
+        ("GET", "/v1/conversas/", {}, 404),
         ("GET", "/v1/conta", {}, 401),
         ("DELETE", "/v1/conta", cookie, 403),
         ("GET", "/v1/nao-existe", {}, 404),

@@ -40,7 +40,7 @@ def criar_app(config: Config, agentes: Agentes | None = None) -> FastAPI:
             if proprios is not None:
                 await proprios.fechar()
 
-    app = FastAPI(title="Artemis API", lifespan=ciclo_de_vida)
+    app = FastAPI(title="Artemis API", lifespan=ciclo_de_vida, redirect_slashes=False)
     app.state.config = config
     app.add_exception_handler(RequestValidationError, _validacao_sem_eco)
 
