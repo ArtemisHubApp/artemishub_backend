@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "POST /v1/responder (v1)",
-  "description": "RASCUNHO do contrato entre backend e agents (ArtemisHubApp/artemishub_agents#36); ainda não fechado.",
+  "description": "RASCUNHO do contrato entre backend e agents (ArtemisHubApp/artemishub_agents#36); ainda não fechado. A raiz não valida nada: valide contra #/$defs/pedido ou #/$defs/resposta.",
   "$defs": {
     "texto": {
       "description": "Sem NUL e sem surrogate solto: o Postgres não guarda nenhum dos dois.",
