@@ -21,6 +21,11 @@ class ConversaSaida(BaseModel):
     atualizada_em: DataUtc
 
 
+class PaginaDeConversasSaida(BaseModel):
+    itens: list[ConversaSaida]
+    proximo: str | None
+
+
 class MensagemSaida(BaseModel):
     id: uuid.UUID
     papel: str

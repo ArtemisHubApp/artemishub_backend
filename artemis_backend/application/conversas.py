@@ -1,7 +1,13 @@
 import uuid
 
 from artemis_backend.application.portas import RepositorioConversas
-from artemis_backend.domain.conversa import Conversa, ConversaComMensagens, ConversaInexistente
+from artemis_backend.domain.conversa import (
+    Conversa,
+    ConversaComMensagens,
+    ConversaInexistente,
+    PaginaDeConversas,
+    PosicaoNaLista,
+)
 
 
 class ServicoConversas:
@@ -11,8 +17,13 @@ class ServicoConversas:
     async def criar(self, usuaria_id: uuid.UUID) -> Conversa:
         return await self._repositorio.criar(usuaria_id, uuid.uuid4())
 
-    async def listar(self, usuaria_id: uuid.UUID) -> list[Conversa]:
-        return await self._repositorio.listar(usuaria_id)
+    async def listar(
+        self, usuaria_id: uuid.UUID, limite: int, depois_de: PosicaoNaLista | None
+    ) -> PaginaDeConversas:
+        # Uma a mais diz se há outra página sem precisar contar.
+        lidas = await self._repositorio.listar(usuaria_id, limite + 1, depois_de)
+        itens = tuple(lidas[:limite])
+        return PaginaDeConversas(itens, itens[-1].posicao if len(lidas) > limite else None)
 
     async def obter(self, usuaria_id: uuid.UUID, conversa_id: uuid.UUID) -> ConversaComMensagens:
         historico = await self._repositorio.obter(usuaria_id, conversa_id)

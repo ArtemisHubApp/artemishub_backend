@@ -1,6 +1,7 @@
 import uuid
+from dataclasses import astuple
 
-from sqlalchemy import delete, insert, select
+from sqlalchemy import delete, insert, select, tuple_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -12,9 +13,16 @@ from artemis_backend.adapters.linhas_de_conversa import (
 )
 from artemis_backend.adapters.tabelas import Conversa as LinhaConversa
 from artemis_backend.adapters.tabelas import Mensagem as LinhaMensagem
-from artemis_backend.domain.conversa import Conversa, ConversaComMensagens, UsuariaInexistente
+from artemis_backend.domain.conversa import (
+    Conversa,
+    ConversaComMensagens,
+    PosicaoNaLista,
+    UsuariaInexistente,
+)
 
 _VIOLACAO_DE_CHAVE_ESTRANGEIRA = "23503"
+# Os campos de PosicaoNaLista, na mesma ordem.
+_ORDEM_DA_LISTA = (LinhaConversa.atualizada_em, LinhaConversa.criada_em, LinhaConversa.id)
 
 
 class RepositorioConversasSql:
@@ -35,16 +43,17 @@ class RepositorioConversasSql:
                 raise UsuariaInexistente from None
             raise
 
-    async def listar(self, usuaria_id: uuid.UUID) -> list[Conversa]:
+    async def listar(
+        self, usuaria_id: uuid.UUID, limite: int, depois_de: PosicaoNaLista | None
+    ) -> list[Conversa]:
         consulta = (
             select(*COLUNAS_DA_CONVERSA)
             .where(LinhaConversa.usuaria_id == usuaria_id)
-            .order_by(
-                LinhaConversa.atualizada_em.desc(),
-                LinhaConversa.criada_em.desc(),
-                LinhaConversa.id.desc(),
-            )
+            .order_by(*(coluna.desc() for coluna in _ORDEM_DA_LISTA))
+            .limit(limite)
         )
+        if depois_de is not None:
+            consulta = consulta.where(tuple_(*_ORDEM_DA_LISTA) < astuple(depois_de))
         async with self._sessoes() as sessao:
             return [para_conversa(linha) for linha in await sessao.execute(consulta)]
 

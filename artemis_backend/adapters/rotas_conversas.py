@@ -2,13 +2,30 @@ import dataclasses
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi.exceptions import RequestValidationError
 
 from artemis_backend.adapters.autenticacao import Usuaria, token_invalido
 from artemis_backend.adapters.conversa_inexistente import nao_encontrada
-from artemis_backend.adapters.esquemas_conversas import ConversaDetalheSaida, ConversaSaida
+from artemis_backend.adapters.cursor import (
+    CURSOR_MAXIMO,
+    CursorInvalido,
+    escrever_cursor,
+    ler_cursor,
+)
+from artemis_backend.adapters.esquemas_conversas import (
+    ConversaDetalheSaida,
+    ConversaSaida,
+    PaginaDeConversasSaida,
+)
 from artemis_backend.application.conversas import ServicoConversas
-from artemis_backend.domain.conversa import ConversaInexistente, UsuariaInexistente
+from artemis_backend.domain.conversa import (
+    PAGINA_MAXIMA,
+    PAGINA_PADRAO,
+    ConversaInexistente,
+    PosicaoNaLista,
+    UsuariaInexistente,
+)
 
 roteador = APIRouter(prefix="/v1/conversas", tags=["conversas"])
 
@@ -20,9 +37,28 @@ def _servico(request: Request) -> ServicoConversas:
 Servico = Annotated[ServicoConversas, Depends(_servico)]
 
 
-@roteador.get("", response_model=list[ConversaSaida])
-async def listar(usuaria_id: Usuaria, servico: Servico):
-    return await servico.listar(usuaria_id)
+def _posicao_do_cursor(
+    cursor: Annotated[str | None, Query(max_length=CURSOR_MAXIMO)] = None,
+) -> PosicaoNaLista | None:
+    if cursor is None:
+        return None
+    try:
+        return ler_cursor(cursor)
+    except CursorInvalido:
+        erro = {"loc": ("query", "cursor"), "msg": "Cursor inválido", "type": "cursor_invalido"}
+        raise RequestValidationError([erro]) from None
+
+
+@roteador.get("", response_model=PaginaDeConversasSaida)
+async def listar(
+    usuaria_id: Usuaria,
+    servico: Servico,
+    depois_de: Annotated[PosicaoNaLista | None, Depends(_posicao_do_cursor)],
+    limite: Annotated[int, Query(ge=1, le=PAGINA_MAXIMA)] = PAGINA_PADRAO,
+):
+    pagina = await servico.listar(usuaria_id, limite, depois_de)
+    proximo = None if pagina.proxima is None else escrever_cursor(pagina.proxima)
+    return {"itens": pagina.itens, "proximo": proximo}
 
 
 @roteador.post("", status_code=status.HTTP_201_CREATED, response_model=ConversaSaida)

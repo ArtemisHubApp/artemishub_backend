@@ -9,6 +9,7 @@ from artemis_backend.domain.conversa import (
     Mensagem,
     NovaResposta,
     PerguntaIniciada,
+    PosicaoNaLista,
     Troca,
 )
 
@@ -43,8 +44,13 @@ class RepositorioConversas(Protocol):
 
     async def criar(self, usuaria_id: uuid.UUID, conversa_id: uuid.UUID) -> Conversa: ...
 
-    async def listar(self, usuaria_id: uuid.UUID) -> list[Conversa]:
-        """Da mais recente para a mais antiga, com desempate fixo."""
+    async def listar(
+        self, usuaria_id: uuid.UUID, limite: int, depois_de: PosicaoNaLista | None
+    ) -> list[Conversa]:
+        """Até `limite` conversas da mais recente para a mais antiga, com desempate fixo.
+
+        Uma conversa atualizada entre duas páginas muda de lugar e pode repetir ou faltar.
+        """
 
     async def obter(
         self, usuaria_id: uuid.UUID, conversa_id: uuid.UUID

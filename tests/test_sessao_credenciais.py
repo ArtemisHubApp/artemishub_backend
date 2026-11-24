@@ -13,7 +13,7 @@ async def test_authorization_tem_prioridade_e_dispensa_origin(cliente, entrar_co
     ambos = {**ana, **cookie_da_bia}
     assert (await cliente.get("/v1/conta", headers=ambos)).json()["email"] == ANA
     assert (await cliente.post("/v1/conversas", headers=ambos)).status_code == 201
-    assert (await cliente.get("/v1/conversas", headers=bia)).json() == []
+    assert (await cliente.get("/v1/conversas", headers=bia)).json()["itens"] == []
     assert (await cliente.delete("/v1/conta", headers=ambos)).status_code == 204
     assert (await cliente.get("/v1/conta", headers=bia)).json()["email"] == BIA
 

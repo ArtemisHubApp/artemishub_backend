@@ -99,7 +99,7 @@ async def test_email_pode_ser_cadastrado_de_novo(cliente, entrar_como):
 
     assert r.status_code == 201
     nova = await entrar_como(ANA)
-    assert (await cliente.get("/v1/conversas", headers=nova)).json() == []
+    assert (await cliente.get("/v1/conversas", headers=nova)).json()["itens"] == []
     assert (await cliente.get("/v1/conversas", headers=ana)).status_code == 401
 
 

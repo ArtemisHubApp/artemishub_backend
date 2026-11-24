@@ -8,6 +8,8 @@ PAPEL_ARTEMIS = "artemis"
 TITULO_MAXIMO = 60
 TROCAS_NA_MEMORIA = 3
 PERGUNTA_MAXIMA = 1000
+PAGINA_PADRAO = 50
+PAGINA_MAXIMA = 100
 # Se o processo cair no meio da resposta, a conversa volta a aceitar perguntas depois disso.
 VALIDADE_DA_TRAVA = timedelta(seconds=60)
 
@@ -48,6 +50,27 @@ class Conversa:
     titulo: str | None
     criada_em: datetime
     atualizada_em: datetime
+
+    @property
+    def posicao(self) -> "PosicaoNaLista":
+        return PosicaoNaLista(self.atualizada_em, self.criada_em, self.id)
+
+
+@dataclass(frozen=True)
+class PosicaoNaLista:
+    """Lugar de uma conversa na lista, na mesma ordem de comparação dos campos."""
+
+    atualizada_em: datetime
+    criada_em: datetime
+    id: uuid.UUID
+
+
+@dataclass(frozen=True)
+class PaginaDeConversas:
+    """`proxima` é a posição depois da qual a lista continua; None na última página."""
+
+    itens: tuple[Conversa, ...]
+    proxima: PosicaoNaLista | None
 
 
 @dataclass(frozen=True)
