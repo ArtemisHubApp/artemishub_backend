@@ -1,14 +1,16 @@
 import asyncio
+import time
 import uuid
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 from artemis_backend.adapters.banco import criar_fabrica_de_sessoes
 from artemis_backend.adapters.tabelas import Conversa, Mensagem, Usuaria
 from tests.conftest import SENHA_DE_TESTE, resposta_dos_agentes
 
+MENSAGENS_NO_VOLUME = 60_000
 ANA = "ana@example.com"
 BIA = "bia@example.com"
 TEXTO_DO_CONSENTIMENTO = (
@@ -160,3 +162,29 @@ async def test_consentimento_e_publico_e_cita_quem_recebe_o_texto(cliente):
     assert r.json() == {"texto": TEXTO_DO_CONSENTIMENTO}
     for termo in ("Gemini", "Langfuse", "permanecem"):
         assert termo in r.json()["texto"]
+
+
+async def test_excluir_conta_com_muitas_mensagens_cabe_no_limite_do_banco(
+    cliente, entrar_como, sessao
+):
+    """Sem índice em mensagens.pergunta_id, cada mensagem apagada varre a tabela inteira."""
+    ana = await entrar_como(ANA)
+    conversa = (await cliente.post("/v1/conversas", headers=ana)).json()["id"]
+    await sessao.execute(
+        text(
+            "INSERT INTO mensagens (id, conversa_id, papel, texto) "
+            "SELECT gen_random_uuid(), :conversa, 'usuaria', 'm' || n "
+            "FROM generate_series(1, :total) AS n"
+        ),
+        {"conversa": uuid.UUID(conversa), "total": MENSAGENS_NO_VOLUME},
+    )
+    await sessao.commit()
+    assert await contar(sessao, Mensagem) == MENSAGENS_NO_VOLUME
+
+    inicio = time.monotonic()
+    r = await cliente.delete("/v1/conta", headers=ana)
+    duracao = time.monotonic() - inicio
+
+    assert r.status_code == 204
+    assert duracao < 5, f"exclusão levou {duracao:.1f}s"
+    assert await contar(sessao, Mensagem) == 0
