@@ -3,18 +3,17 @@ import time
 import uuid
 
 import pytest
-import pytest_asyncio
-from sqlalchemy import func, select, text
+from sqlalchemy import text
 
-from artemis_backend.adapters.banco import criar_fabrica_de_sessoes
 from artemis_backend.adapters.rotas_auth import usuaria_atual
 from artemis_backend.adapters.tabelas import Conversa, Mensagem, Usuaria
 from artemis_backend.domain.usuaria import TokenInvalido
-from tests.conftest import ORIGEM_DE_TESTE, SENHA_DE_TESTE, resposta_dos_agentes
+from tests.apoio.agentes import resposta_dos_agentes
+from tests.apoio.banco import contar
+from tests.apoio.sessao import em_cookie, rotas_protegidas
+from tests.apoio.valores import ANA, BIA, SENHA_DE_TESTE
 
 MENSAGENS_NO_VOLUME = 60_000
-ANA = "ana@example.com"
-BIA = "bia@example.com"
 TEXTO_DO_CONSENTIMENTO = (
     "Guardamos suas conversas para você consultar depois. O texto das perguntas é enviado "
     "ao Google Gemini, para gerar a resposta, e ao Langfuse, para acompanhar a qualidade. "
@@ -22,19 +21,6 @@ TEXTO_DO_CONSENTIMENTO = (
     "dele. Você pode apagar conversas e a conta quando quiser; os registros no Langfuse "
     "permanecem."
 )
-
-
-@pytest_asyncio.fixture
-async def sessao(app):
-    async with criar_fabrica_de_sessoes(app.state.motor)() as s:
-        yield s
-
-
-async def contar(sessao, tabela, **filtros) -> int:
-    consulta = select(func.count()).select_from(tabela)
-    for coluna, valor in filtros.items():
-        consulta = consulta.where(getattr(tabela, coluna) == valor)
-    return await sessao.scalar(consulta)
 
 
 async def conversar(cliente, cabecalho, pergunta: str) -> str:
@@ -72,32 +58,8 @@ async def test_excluir_conta_apaga_tudo_dela_e_nada_das_outras(cliente, entrar_c
     assert depois_da_bia.json() == antes_da_bia
 
 
-ROTAS_PUBLICAS = {
-    ("GET", "/health"),
-    ("POST", "/v1/auth/cadastro"),
-    ("POST", "/v1/auth/login"),
-    ("POST", "/v1/auth/sair"),
-    ("GET", "/v1/consentimento"),
-}
-
-
-def rotas_protegidas(app) -> list[tuple[str, str]]:
-    # O OpenAPI lista todas as rotas já com o prefixo, o que app.routes não faz mais.
-    achadas = {
-        (metodo.upper(), caminho)
-        for caminho, operacoes in app.openapi()["paths"].items()
-        for metodo in operacoes
-    }
-    return sorted(achadas - ROTAS_PUBLICAS)
-
-
 def em_cabecalho(autorizacao: dict) -> dict:
     return autorizacao
-
-
-def em_cookie(autorizacao: dict) -> dict:
-    token = autorizacao["Authorization"].removeprefix("Bearer ")
-    return {"Cookie": f"artemis_sessao={token}", "Origin": ORIGEM_DE_TESTE}
 
 
 @pytest.mark.parametrize("forma", [em_cabecalho, em_cookie])

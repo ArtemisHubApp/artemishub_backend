@@ -15,9 +15,13 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from artemis_backend.adapters.rotas_auth import usuaria_atual
 from artemis_backend.main import criar_app
-from tests.conftest import SEGREDO_DE_TESTE, SENHA_DE_TESTE, config_alembic
+from tests.apoio.banco import config_alembic
+from tests.apoio.sessao import token
+from tests.apoio.valores import SEGREDO_DE_TESTE, SENHA_DE_TESTE
 
 EMAIL = "ana@example.com"
+
+
 MENSAGEM_503 = {"detail": "Serviço indisponível, tente de novo"}
 
 
@@ -128,13 +132,6 @@ async def test_senha_guardada_com_argon2(cliente, app):
     [(senha_hash,)] = await ler_banco(app, "SELECT senha_hash FROM usuarias")
     assert senha_hash.startswith("$argon2")
     assert SENHA_DE_TESTE not in senha_hash
-
-
-def token(sub: str | None = None, *, exp: datetime | None = None, segredo=SEGREDO_DE_TESTE, **kw):
-    agora = datetime.now(UTC)
-    carga = {"sub": sub, "exp": exp or agora + timedelta(minutes=5), "iat": agora}
-    carga = {k: v for k, v in carga.items() if v is not None}
-    return jwt.encode(carga, segredo, algorithm="HS256", **kw)
 
 
 @pytest.fixture

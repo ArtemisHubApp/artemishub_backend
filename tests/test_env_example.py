@@ -1,5 +1,5 @@
 from artemis_backend.config import Config
-from tests.conftest import RAIZ
+from tests.apoio.valores import RAIZ
 
 
 def ler_env_example() -> dict[str, str]:

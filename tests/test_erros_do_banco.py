@@ -13,7 +13,7 @@ from sqlalchemy.exc import InterfaceError, OperationalError
 
 from artemis_backend.adapters.banco import criar_motor
 from artemis_backend.main import criar_app
-from tests.conftest import SENHA_DE_TESTE
+from tests.apoio.valores import SENHA_DE_TESTE
 
 EMAIL = "qa4x@example.com"
 MENSAGEM_503 = {"detail": "Serviço indisponível, tente de novo"}

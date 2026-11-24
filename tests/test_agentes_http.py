@@ -13,7 +13,7 @@ from artemis_backend.adapters.agentes_http import AgentesHttp
 from artemis_backend.application.perguntar import AgentesIndisponiveis, RespostaAgentes
 from artemis_backend.domain.conversa import Troca
 from artemis_backend.main import criar_app
-from tests.conftest import AgentesFake
+from tests.apoio.agentes import AgentesFake
 
 RAIZ = Path(__file__).resolve().parent.parent
 CONTRATO = json.loads((RAIZ / "contratos" / "responder.v1.schema.json").read_text("utf-8"))
