@@ -1,8 +1,10 @@
 import logging
 
-from sqlalchemy.exc import DBAPIError, InterfaceError, OperationalError
+from sqlalchemy.exc import TimeoutError as PoolEsgotado
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+from artemis_backend.adapters.banco import BancoIndisponivel
 
 _log = logging.getLogger(__name__)
 
@@ -10,17 +12,9 @@ _INDISPONIVEL = {"detail": "Serviço indisponível, tente de novo"}
 _INTERNO = {"detail": "Erro interno"}
 
 
-def _falha_de_conexao(erro: BaseException) -> bool:
-    """Só falhas de conexão com o banco: recusada ao conectar ou conexão do pool quebrada."""
-    visto: set[int] = set()
-    while erro is not None and id(erro) not in visto:
-        visto.add(id(erro))
-        if isinstance(erro, OSError | InterfaceError | OperationalError):
-            return True
-        if isinstance(erro, DBAPIError) and erro.connection_invalidated:
-            return True
-        erro = erro.__cause__ or erro.__context__
-    return False
+# O motor converte toda falha de conexão em BancoIndisponivel (ver banco.py); TimeoutError do
+# SQLAlchemy é o pool esgotado. Qualquer outra exceção, mesmo OSError, é erro nosso.
+_FALHAS_DE_CONEXAO = (BancoIndisponivel, PoolEsgotado)
 
 
 class ProtegeErros:
@@ -47,7 +41,7 @@ class ProtegeErros:
         try:
             await self._app(scope, receive, enviar)
         except Exception as erro:
-            indisponivel = _falha_de_conexao(erro)
+            indisponivel = isinstance(erro, _FALHAS_DE_CONEXAO)
             rota = getattr(scope.get("route"), "path", "?")
             _log.error(
                 "%s: %s em %s %s",
