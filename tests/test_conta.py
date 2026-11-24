@@ -10,7 +10,7 @@ from artemis_backend.adapters.banco import criar_fabrica_de_sessoes
 from artemis_backend.adapters.rotas_auth import usuaria_atual
 from artemis_backend.adapters.tabelas import Conversa, Mensagem, Usuaria
 from artemis_backend.domain.usuaria import TokenInvalido
-from tests.conftest import SENHA_DE_TESTE, resposta_dos_agentes
+from tests.conftest import ORIGEM_DE_TESTE, SENHA_DE_TESTE, resposta_dos_agentes
 
 MENSAGENS_NO_VOLUME = 60_000
 ANA = "ana@example.com"
@@ -76,6 +76,7 @@ ROTAS_PUBLICAS = {
     ("GET", "/health"),
     ("POST", "/v1/auth/cadastro"),
     ("POST", "/v1/auth/login"),
+    ("POST", "/v1/auth/sair"),
     ("GET", "/v1/consentimento"),
 }
 
@@ -90,18 +91,28 @@ def rotas_protegidas(app) -> list[tuple[str, str]]:
     return sorted(achadas - ROTAS_PUBLICAS)
 
 
+def em_cabecalho(autorizacao: dict) -> dict:
+    return autorizacao
+
+
+def em_cookie(autorizacao: dict) -> dict:
+    token = autorizacao["Authorization"].removeprefix("Bearer ")
+    return {"Cookie": f"artemis_sessao={token}", "Origin": ORIGEM_DE_TESTE}
+
+
+@pytest.mark.parametrize("forma", [em_cabecalho, em_cookie])
 async def test_token_de_conta_excluida_responde_401_em_toda_rota_protegida(
-    app, cliente, entrar_como
+    app, cliente, entrar_como, forma
 ):
     ana = await entrar_como(ANA)
     assert (await cliente.delete("/v1/conta", headers=ana)).status_code == 204
     invalido = await cliente.get("/v1/conversas", headers={"Authorization": "Bearer lixo"})
     rotas = rotas_protegidas(app)
-    assert ("DELETE", "/v1/conta") in rotas and ("GET", "/v1/conversas") in rotas
+    assert {("DELETE", "/v1/conta"), ("GET", "/v1/conta"), ("GET", "/v1/conversas")} <= set(rotas)
 
     for metodo, caminho in rotas:
         url = caminho.replace("{conversa_id}", str(uuid.uuid4()))
-        r = await cliente.request(metodo, url, headers=ana, json={"pergunta": "oi"})
+        r = await cliente.request(metodo, url, headers=forma(ana), json={"pergunta": "oi"})
         assert r.status_code == 401, (metodo, caminho)
         assert r.json() == invalido.json()
         assert r.headers["WWW-Authenticate"] == "Bearer"

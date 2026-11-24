@@ -4,7 +4,7 @@
 
 Este repositório contém a **API** do Artemis: a camada que conecta a interface web aos agentes de IA e à base de conhecimento, além de cuidar das regras de negócio, da autenticação e da persistência dos dados.
 
-> 🚧 **Em desenvolvimento.** Hoje existem `GET /health`, o cadastro com consentimento (`POST /v1/auth/cadastro`), o login (`POST /v1/auth/login`), o banco Postgres (tabelas `usuarias`, `conversas` e `mensagens`), as migrações e as rotas de conversas (criar, listar, abrir, apagar e perguntar), todas protegidas por token. A pergunta chama o serviço de agentes por HTTP, mas o contrato ainda é um rascunho ([artemishub_agents#36](https://github.com/ArtemisHubApp/artemishub_agents/issues/36)) e o endpoint de lá ainda não existe: nos testes os agentes são simulados. Também existem `GET /v1/consentimento` e a exclusão da conta (`DELETE /v1/conta`). O texto do consentimento ainda precisa ser revisado pela equipe no ADR de LGPD. O compose com Postgres e backend é a [backend#11](https://github.com/ArtemisHubApp/artemishub_backend/issues/11) e ainda não existe.
+> 🚧 **Em desenvolvimento.** Hoje existem `GET /health`, o cadastro com consentimento (`POST /v1/auth/cadastro`), o login (`POST /v1/auth/login`), o banco Postgres (tabelas `usuarias`, `conversas` e `mensagens`), as migrações e as rotas de conversas (criar, listar, abrir, apagar e perguntar), todas protegidas por sessão (token ou cookie). A pergunta chama o serviço de agentes por HTTP, mas o contrato ainda é um rascunho ([artemishub_agents#36](https://github.com/ArtemisHubApp/artemishub_agents/issues/36)) e o endpoint de lá ainda não existe: nos testes os agentes são simulados. Também existem `GET /v1/consentimento` e a exclusão da conta (`DELETE /v1/conta`). O texto do consentimento ainda precisa ser revisado pela equipe no ADR de LGPD. O compose com Postgres e backend é a [backend#11](https://github.com/ArtemisHubApp/artemishub_backend/issues/11) e ainda não existe.
 
 ## 🎯 Responsabilidades
 
@@ -38,7 +38,7 @@ Python 3.12, [uv](https://docs.astral.sh/uv/), FastAPI, SQLAlchemy 2 (async) com
      -e POSTGRES_DB=artemis -p 5432:5432 -d postgres:16
    ```
 
-3. Copie `.env.example` para `.env` e preencha as variáveis: `DATABASE_URL`, `ARTEMIS_JWT_SEGREDO`, `ARTEMIS_AGENTS_URL` e `ARTEMIS_AGENTS_TOKEN`. `ARTEMIS_JWT_SEGREDO` e `ARTEMIS_AGENTS_TOKEN` vêm vazios no `.env.example` de propósito: gere o segredo (`openssl rand -base64 48`, ou `python -c "import secrets; print(secrets.token_urlsafe(48))"` no Windows) e peça o token dos agentes à equipe. A API não sobe sem `ARTEMIS_JWT_SEGREDO`, que precisa ter pelo menos 32 bytes. Na `DATABASE_URL`, a `<senha>` é a mesma `POSTGRES_PASSWORD` do passo 2. Nunca commite o `.env`.
+3. Copie `.env.example` para `.env` e preencha as variáveis: `DATABASE_URL`, `ARTEMIS_JWT_SEGREDO`, `ARTEMIS_AGENTS_URL`, `ARTEMIS_AGENTS_TOKEN`, `ARTEMIS_ORIGEM` e `ARTEMIS_COOKIE_SEGURO` (veja [Sessão no navegador](#sessão-no-navegador)). `ARTEMIS_JWT_SEGREDO` e `ARTEMIS_AGENTS_TOKEN` vêm vazios no `.env.example` de propósito: gere o segredo (`openssl rand -base64 48`, ou `python -c "import secrets; print(secrets.token_urlsafe(48))"` no Windows) e peça o token dos agentes à equipe. A API não sobe sem `ARTEMIS_JWT_SEGREDO`, que precisa ter pelo menos 32 bytes. Na `DATABASE_URL`, a `<senha>` é a mesma `POSTGRES_PASSWORD` do passo 2. Nunca commite o `.env`.
 4. Aplique as migrações: `uv run --env-file .env alembic upgrade head`.
 5. Inicie a API: `uv run --env-file .env uvicorn artemis_backend.main:app_de_ambiente --factory`. Teste em `http://localhost:8000/health`.
 
@@ -47,22 +47,41 @@ Python 3.12, [uv](https://docs.astral.sh/uv/), FastAPI, SQLAlchemy 2 (async) com
 | Rota | Corpo | Resposta |
 |---|---|---|
 | `POST /v1/auth/cadastro` | `email`, `senha` (8 a 128 caracteres), `consentimento` (precisa ser o booleano `true`) | 201 com `{"id": ...}`; 409 se o e-mail já existe; 422 se algo for inválido |
-| `POST /v1/auth/login` | `email`, `senha` | 200 com `{"token": ..., "tipo": "bearer"}` (JWT de 60 minutos, sem refresh); 401 para senha errada ou e-mail sem conta, com a mesma resposta |
+| `POST /v1/auth/login` | `email`, `senha` | 200 com `{"token": ..., "tipo": "bearer"}` (JWT de 60 minutos, sem refresh) e o cookie de sessão; 401 para senha errada ou e-mail sem conta, com a mesma resposta |
+| `POST /v1/auth/sair` | nenhum | 204 e apaga o cookie; também 204 sem sessão. Não invalida um token já copiado |
+
+No cadastro e no login, se o cabeçalho `Origin` vier, precisa ser igual a `ARTEMIS_ORIGEM`; senão, 403.
 
 O e-mail é normalizado (espaços e maiúsculas) no cadastro e no login. A senha é guardada com argon2. As respostas 422 não repetem o que foi enviado. O cadastro repetido usa `INSERT ... ON CONFLICT DO NOTHING`, para o e-mail não aparecer no log do Postgres.
 
-### Consentimento e exclusão da conta
+### Sessão no navegador
+
+O login grava o cookie `artemis_sessao` (`HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/`, 60 minutos), com o mesmo token do corpo. O frontend e a API ficam no mesmo endereço, sem CORS: em desenvolvimento, o Vite (`http://localhost:5173`) repassa `/v1` à API.
+
+- As rotas protegidas aceitam `Authorization: Bearer <token>` ou o cookie. Com qualquer `Authorization`, mesmo inválido, o cookie é ignorado. `Authorization` ou cookie de sessão repetidos respondem 401.
+- Com o cookie, todo método que não seja GET, HEAD ou OPTIONS exige `Origin` igual a `ARTEMIS_ORIGEM`; senão, 403 com `{"detail": "Origem não permitida"}`, antes de conferir a sessão. Sair com o cookie exige `Origin` mesmo com `Authorization`.
+- As respostas de `/v1` levam `Cache-Control: no-store`.
+
+| Variável | Valor |
+|---|---|
+| `ARTEMIS_ORIGEM` | obrigatória: `esquema://host[:porta]`, como o navegador escreve (minúsculas, sem a porta padrão, sem caminho nem barra no fim). `https`, exceto em `localhost` e `127.0.0.1` |
+| `ARTEMIS_COOKIE_SEGURO` | `true` (padrão) ou `false`; `false` só com `ARTEMIS_ORIGEM` em `http` local |
+
+A API não sobe com um valor fora disso.
+
+### Conta e consentimento
 
 | Rota | Resposta |
 |---|---|
 | `GET /v1/consentimento` | 200 com `{"texto": ...}`. Pública, para ser lida antes do cadastro. O texto cita o Google Gemini e o Langfuse, que recebem o texto das perguntas |
-| `DELETE /v1/conta` | Exige token. 204 e apaga a conta, as conversas e as mensagens, sem volta; 401 sem token válido, inclusive numa segunda exclusão da mesma conta. O e-mail pode ser cadastrado de novo, sem as conversas antigas |
+| `GET /v1/conta` | Exige sessão. 200 com `{"id": ..., "email": ...}` da própria usuária; 401 sem sessão válida |
+| `DELETE /v1/conta` | Exige sessão. 204 e apaga a conta, as conversas, as mensagens e o cookie, sem volta; 401 sem sessão válida, inclusive numa segunda exclusão da mesma conta. O e-mail pode ser cadastrado de novo, sem as conversas antigas |
 
 **O que a exclusão não apaga:** os traces do Langfuse permanecem, e o texto do consentimento diz isso. O texto é provisório: a equipe o revisa no ADR de LGPD. Depois da exclusão, o token continua assinado, mas responde 401 em todas as rotas.
 
 ### Rotas de conversas
 
-Exigem `Authorization: Bearer <token>` (401 sem token válido). Cada usuária só enxerga as próprias conversas: a de outra usuária responde 404, igual a uma que não existe.
+Exigem sessão, por `Authorization: Bearer <token>` ou cookie (401 sem sessão válida). Cada usuária só enxerga as próprias conversas: a de outra usuária responde 404, igual a uma que não existe.
 
 | Rota | Resposta |
 |---|---|

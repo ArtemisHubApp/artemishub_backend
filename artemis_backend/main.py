@@ -14,6 +14,7 @@ from artemis_backend.adapters.rotas_auth import roteador as rotas_auth
 from artemis_backend.adapters.rotas_conta import roteador as rotas_conta
 from artemis_backend.adapters.rotas_conversas import roteador as rotas_conversas
 from artemis_backend.adapters.seguranca import EmissorJwt, HasherArgon2, RelogioDoSistema
+from artemis_backend.adapters.sem_cache import SemCache
 from artemis_backend.application.contas import ServicoContas
 from artemis_backend.application.conversas import ServicoConversas
 from artemis_backend.application.perguntar import ServicoPerguntas
@@ -61,6 +62,8 @@ def criar_app(config: Config, agentes: Agentes | None = None) -> FastAPI:
     app.include_router(rotas_conversas)
     app.include_router(rotas_conta)
     app.add_middleware(ProtegeErros)
+    # Por último para ficar por fora e alcançar as respostas do ProtegeErros.
+    app.add_middleware(SemCache)
 
     @app.get("/health")
     async def saude() -> dict[str, str]:
