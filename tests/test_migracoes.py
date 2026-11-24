@@ -106,3 +106,11 @@ async def test_indice_de_conversas_por_usuaria_e_data_existe(banco):
     )
     definicoes = [linha[0] for linha in resultado]
     assert any("(usuaria_id, atualizada_em)" in d for d in definicoes)
+
+
+async def test_indice_de_mensagens_por_conversa_existe(banco):
+    resultado = await banco.execute(
+        text("SELECT indexdef FROM pg_indexes WHERE tablename = 'mensagens'")
+    )
+    definicoes = [linha[0] for linha in resultado]
+    assert any("(conversa_id)" in d for d in definicoes)
