@@ -9,6 +9,8 @@ _VARIAVEIS = (
     "ARTEMIS_AGENTS_TOKEN",
 )
 
+_SEGREDO_MINIMO_BYTES = 32
+
 
 @dataclass(frozen=True)
 class Config:
@@ -24,6 +26,10 @@ class Config:
         for nome, valor in valores.items():
             if not valor:
                 raise ValueError(f"Variável de ambiente obrigatória ausente: {nome}")
+        if len(valores["ARTEMIS_JWT_SEGREDO"].encode()) < _SEGREDO_MINIMO_BYTES:
+            raise ValueError(
+                f"ARTEMIS_JWT_SEGREDO precisa ter pelo menos {_SEGREDO_MINIMO_BYTES} bytes"
+            )
         return cls(
             database_url=valores["DATABASE_URL"],
             jwt_segredo=valores["ARTEMIS_JWT_SEGREDO"],

@@ -9,7 +9,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from artemis_backend.adapters.tabelas import Base
 
 config = context.config
-URL = config.get_main_option("sqlalchemy.url") or os.environ["DATABASE_URL"]
+URL = config.get_main_option("sqlalchemy.url") or os.environ.get("DATABASE_URL", "").strip()
+if not URL:
+    raise ValueError("Variável de ambiente obrigatória ausente: DATABASE_URL")
 
 
 def _migrar(conexao: Connection) -> None:

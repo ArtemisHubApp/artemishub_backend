@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import (
 
 
 def criar_motor(database_url: str) -> AsyncEngine:
-    return create_async_engine(database_url)
+    return create_async_engine(database_url, hide_parameters=True)
 
 
 def criar_fabrica_de_sessoes(motor: AsyncEngine) -> async_sessionmaker[AsyncSession]:
