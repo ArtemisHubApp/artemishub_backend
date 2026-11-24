@@ -22,6 +22,9 @@ class RepositorioContas(Protocol):
 
     async def por_id(self, id: uuid.UUID) -> Usuaria | None: ...
 
+    async def excluir(self, id: uuid.UUID) -> bool:
+        """Apaga a usuária e, em cascata, tudo dela; False se não existe (ou já foi apagada)."""
+
 
 class HasherSenha(Protocol):
     def hash(self, senha: str) -> str: ...
@@ -85,3 +88,8 @@ class ServicoContas:
         if await self._repositorio.por_id(usuaria_id) is None:
             raise TokenInvalido
         return usuaria_id
+
+    async def excluir(self, usuaria_id: uuid.UUID) -> None:
+        if not await self._repositorio.excluir(usuaria_id):
+            # Outra exclusão da mesma conta chegou primeiro: o token já não vale.
+            raise TokenInvalido

@@ -114,3 +114,16 @@ async def test_indice_de_mensagens_por_conversa_existe(banco):
     )
     definicoes = [linha[0] for linha in resultado]
     assert any("(conversa_id)" in d for d in definicoes)
+
+
+async def test_mensagens_tem_indice_em_pergunta_id(criar_banco_vazio):
+    url = await criar_banco_vazio()
+    await asyncio.to_thread(command.upgrade, config_alembic(url), "head")
+    motor = create_async_engine(url)
+    async with motor.connect() as conexao:
+        indices = await conexao.run_sync(lambda c: inspect(c).get_indexes("mensagens"))
+    await motor.dispose()
+    assert any(
+        i["name"] == "ix_mensagens_pergunta_id" and i["column_names"] == ["pergunta_id"]
+        for i in indices
+    )

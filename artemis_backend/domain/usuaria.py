@@ -8,6 +8,15 @@ SENHA_MAXIMA = 128
 _EMAIL_MAXIMO = 254
 _FORMATO_EMAIL = re.compile(r"[^\s@\x00]+@[^\s@\x00]+\.[^\s@\x00]+")
 
+# A equipe revisa o texto no ADR de LGPD.
+CONSENTIMENTO = (
+    "Guardamos suas conversas para você consultar depois. O texto das perguntas é enviado "
+    "ao Google Gemini, para gerar a resposta, e ao Langfuse, para acompanhar a qualidade. "
+    "No plano gratuito do Gemini, o Google pode usar esse texto para melhorar os produtos "
+    "dele. Você pode apagar conversas e a conta quando quiser; os registros no Langfuse "
+    "permanecem."
+)
+
 
 class EmailInvalido(ValueError):
     pass

@@ -1,13 +1,11 @@
 import uuid
 
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from artemis_backend.adapters.tabelas import Usuaria as LinhaUsuaria
 from artemis_backend.domain.usuaria import EmailJaCadastrado, Usuaria
-
-_VIOLACAO_DE_UNICIDADE = "23505"
 
 
 def _para_dominio(linha: LinhaUsuaria) -> Usuaria:
@@ -24,21 +22,31 @@ class RepositorioContasSql:
         self._sessoes = sessoes
 
     async def criar(self, usuaria: Usuaria) -> None:
-        async with self._sessoes() as sessao:
-            sessao.add(
-                LinhaUsuaria(
-                    id=usuaria.id,
-                    email=usuaria.email,
-                    senha_hash=usuaria.senha_hash,
-                    consentiu_em=usuaria.consentiu_em,
-                )
+        # ON CONFLICT em vez de capturar a violação: o erro do Postgres levaria o e-mail
+        # (DETAIL da violação de unicidade) para o log do servidor.
+        comando = (
+            insert(LinhaUsuaria)
+            .values(
+                id=usuaria.id,
+                email=usuaria.email,
+                senha_hash=usuaria.senha_hash,
+                consentiu_em=usuaria.consentiu_em,
             )
-            try:
-                await sessao.commit()
-            except IntegrityError as erro:
-                if getattr(erro.orig, "sqlstate", None) == _VIOLACAO_DE_UNICIDADE:
-                    raise EmailJaCadastrado from None
-                raise
+            .on_conflict_do_nothing(index_elements=["email"])
+            .returning(LinhaUsuaria.id)
+        )
+        async with self._sessoes() as sessao:
+            gravada = await sessao.scalar(comando)
+            await sessao.commit()
+        if gravada is None:
+            raise EmailJaCadastrado
+
+    async def excluir(self, id: uuid.UUID) -> bool:
+        comando = delete(LinhaUsuaria).where(LinhaUsuaria.id == id).returning(LinhaUsuaria.id)
+        async with self._sessoes() as sessao:
+            apagada = await sessao.scalar(comando)
+            await sessao.commit()
+        return apagada is not None
 
     async def por_email(self, email: str) -> Usuaria | None:
         async with self._sessoes() as sessao:
