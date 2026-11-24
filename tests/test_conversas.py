@@ -256,3 +256,33 @@ async def test_apagar_duas_vezes_ao_mesmo_tempo_nao_da_500(cliente, entrar_como)
             *(cliente.delete(f"/v1/conversas/{id_}", headers=cabecalho) for _ in range(4))
         )
         assert sorted(r.status_code for r in respostas) == [204, 404, 404, 404]
+
+
+async def test_conta_apagada_antes_de_criar_conversa_responde_401(app, cliente, sessao, caplog):
+    from artemis_backend.adapters.rotas_auth import usuaria_atual
+
+    fantasma = uuid.uuid4()
+    app.dependency_overrides[usuaria_atual] = lambda: fantasma
+    try:
+        r = await cliente.post("/v1/conversas")
+    finally:
+        app.dependency_overrides.clear()
+    invalido = await cliente.get("/v1/conversas", headers={"Authorization": "Bearer lixo"})
+
+    assert r.status_code == 401
+    assert r.json() == invalido.json()
+    assert r.headers["WWW-Authenticate"] == "Bearer"
+    assert await sessao.scalar(select(func.count()).select_from(Conversa)) == 0
+    assert "@" not in caplog.text
+
+
+async def test_outra_violacao_de_integridade_continua_subindo(app, entrar_como):
+    from sqlalchemy.exc import IntegrityError
+
+    await entrar_como(ANA)
+    usuaria_id = await app.state.contas._repositorio.por_email(ANA)
+    repositorio = app.state.conversas._repositorio
+    conversa_id = uuid.uuid4()
+    await repositorio.criar(usuaria_id.id, conversa_id)
+    with pytest.raises(IntegrityError):
+        await repositorio.criar(usuaria_id.id, conversa_id)

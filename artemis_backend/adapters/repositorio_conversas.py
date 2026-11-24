@@ -1,6 +1,7 @@
 import uuid
 
 from sqlalchemy import case, delete, insert, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from artemis_backend.adapters.tabelas import Conversa as LinhaConversa
@@ -10,7 +11,10 @@ from artemis_backend.domain.conversa import (
     Conversa,
     ConversaComMensagens,
     Mensagem,
+    UsuariaInexistente,
 )
+
+_VIOLACAO_DE_CHAVE_ESTRANGEIRA = "23503"
 
 _COLUNAS_DA_CONVERSA = (
     LinhaConversa.id,
@@ -52,8 +56,13 @@ class RepositorioConversasSql:
             .values(id=conversa_id, usuaria_id=usuaria_id)
             .returning(*_COLUNAS_DA_CONVERSA)
         )
-        async with self._sessoes() as sessao, sessao.begin():
-            return _conversa((await sessao.execute(comando)).one())
+        try:
+            async with self._sessoes() as sessao, sessao.begin():
+                return _conversa((await sessao.execute(comando)).one())
+        except IntegrityError as erro:
+            if getattr(erro.orig, "sqlstate", None) == _VIOLACAO_DE_CHAVE_ESTRANGEIRA:
+                raise UsuariaInexistente from None
+            raise
 
     async def listar(self, usuaria_id: uuid.UUID) -> list[Conversa]:
         consulta = (

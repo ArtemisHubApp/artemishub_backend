@@ -6,9 +6,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, PlainSerializer
 
-from artemis_backend.adapters.rotas_auth import usuaria_atual
+from artemis_backend.adapters.rotas_auth import token_invalido, usuaria_atual
 from artemis_backend.application.conversas import ServicoConversas
-from artemis_backend.domain.conversa import ConversaInexistente
+from artemis_backend.domain.conversa import ConversaInexistente, UsuariaInexistente
 
 roteador = APIRouter(prefix="/v1/conversas", tags=["conversas"])
 
@@ -60,7 +60,11 @@ async def listar(usuaria_id: Usuaria, servico: Servico):
 
 @roteador.post("", status_code=status.HTTP_201_CREATED, response_model=ConversaSaida)
 async def criar(usuaria_id: Usuaria, servico: Servico):
-    return await servico.criar(usuaria_id)
+    try:
+        return await servico.criar(usuaria_id)
+    except UsuariaInexistente:
+        # Conta apagada entre a checagem do token e a gravação: igual a um token inválido.
+        raise token_invalido() from None
 
 
 @roteador.get("/{conversa_id}", response_model=ConversaDetalheSaida)

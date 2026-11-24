@@ -12,6 +12,10 @@ class ConversaInexistente(Exception):
     """Não existe conversa com esse id para essa usuária (inclui a que é de outra)."""
 
 
+class UsuariaInexistente(Exception):
+    """A usuária dona da conversa não existe mais (conta apagada)."""
+
+
 @dataclass(frozen=True)
 class Troca:
     pergunta: str

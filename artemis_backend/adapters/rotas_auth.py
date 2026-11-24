@@ -82,6 +82,14 @@ async def login(pedido: PedidoLogin, servico: Servico) -> dict[str, str]:
     return {"token": token, "tipo": "bearer"}
 
 
+def token_invalido() -> HTTPException:
+    return HTTPException(
+        status.HTTP_401_UNAUTHORIZED,
+        "Token inválido ou vencido",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
 async def usuaria_atual(
     servico: Servico,
     credenciais: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
@@ -92,8 +100,4 @@ async def usuaria_atual(
             raise TokenInvalido
         return await servico.usuaria_do_token(credenciais.credentials)
     except TokenInvalido:
-        raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED,
-            "Token inválido ou vencido",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from None
+        raise token_invalido() from None
