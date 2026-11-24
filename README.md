@@ -4,7 +4,7 @@
 
 Este repositório contém a **API** do Artemis: a camada que conecta a interface web aos agentes de IA e à base de conhecimento, além de cuidar das regras de negócio, da autenticação e da persistência dos dados.
 
-> 🚧 Em desenvolvimento. A integração completa está prevista para a **semana 6** do roadmap.
+> 🚧 **Em desenvolvimento.** Hoje só existe o esqueleto: a rota `GET /health`, o banco Postgres (tabelas `usuarias`, `conversas` e `mensagens`) e as migrações. Cadastro, login, conversas e a chamada aos agentes ainda não foram implementados.
 
 ## 🎯 Responsabilidades
 
@@ -26,11 +26,27 @@ flowchart LR
 
 ## 🧰 Stack
 
-A definir pela equipe. As decisões serão registradas como ADR no [artemishub_docs](https://github.com/ArtemisHubApp/artemishub_docs).
+Python 3.12, [uv](https://docs.astral.sh/uv/), FastAPI, SQLAlchemy 2 (async) com asyncpg, Alembic e Postgres 16. Testes com pytest e testcontainers. O código segue camadas `domain`, `application` e `adapters`, com as dependências apontando para dentro. As decisões ficam como ADR no [artemishub_docs](https://github.com/ArtemisHubApp/artemishub_docs).
 
 ## ▶️ Como executar
 
-As instruções de instalação e execução serão adicionadas junto com o primeiro scaffold da API.
+1. Instale as dependências: `uv sync`.
+2. Suba um Postgres local (só para desenvolvimento; troque a senha):
+
+   ```bash
+   docker run --name artemis-postgres -e POSTGRES_USER=artemis -e POSTGRES_PASSWORD=<senha> \
+     -e POSTGRES_DB=artemis -p 5432:5432 -d postgres:16
+   ```
+
+3. Copie `.env.example` para `.env` e preencha as variáveis: `DATABASE_URL`, `ARTEMIS_JWT_SEGREDO`, `ARTEMIS_AGENTS_URL` e `ARTEMIS_AGENTS_TOKEN`. A API não sobe sem `ARTEMIS_JWT_SEGREDO`. Nunca commite o `.env`.
+4. Aplique as migrações: `uv run --env-file .env alembic upgrade head`.
+5. Inicie a API: `uv run --env-file .env uvicorn artemis_backend.main:app_de_ambiente --factory`. Teste em `http://localhost:8000/health`.
+
+Nova migração: `uv run alembic revision --autogenerate -m "<descrição>"` e revise o arquivo gerado.
+
+## 🧪 Testes
+
+`uv run pytest -q`. Os testes sobem um Postgres 16 descartável com testcontainers, então **o Docker precisa estar rodando**. Antes do PR: `uv run ruff check . && uv run ruff format --check . && uv lock --check`.
 
 ## 📋 Contribuindo
 
