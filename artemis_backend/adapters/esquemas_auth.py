@@ -29,7 +29,7 @@ def _nome_valido(nome: str) -> str:
 
 
 class PedidoNome(BaseModel):
-    nome: str
+    nome: str = Field(description="Como a usuária quer ser chamada (só o primeiro nome ou apelido)")
 
     _normalizar_nome = field_validator("nome")(_nome_valido)
 

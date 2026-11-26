@@ -6,13 +6,14 @@ from datetime import datetime
 
 SENHA_MINIMA = 8
 SENHA_MAXIMA = 128
-NOME_MAXIMO = 80
+NOME_MAXIMO = 40
 _EMAIL_MAXIMO = 254
 _FORMATO_EMAIL = re.compile(r"[^\s@\x00]+@[^\s@\x00]+\.[^\s@\x00]+")
 
 # A equipe revisa o texto no ADR de LGPD.
 CONSENTIMENTO = (
-    "Guardamos suas conversas para você consultar depois. O texto das perguntas é enviado "
+    "Guardamos suas conversas para você consultar depois. O texto das perguntas e o nome "
+    "com que você quer ser chamada são enviados "
     "ao Google Gemini, para gerar a resposta, e ao Langfuse, para acompanhar a qualidade. "
     "No plano gratuito do Gemini, o Google pode usar esse texto para melhorar os produtos "
     "dele. Você pode apagar conversas e a conta quando quiser; os registros no Langfuse "

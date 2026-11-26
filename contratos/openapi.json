@@ -337,6 +337,7 @@
             "type": "string"
           },
           "nome": {
+            "description": "Como a usuária quer ser chamada (só o primeiro nome ou apelido)",
             "title": "Nome",
             "type": "string"
           },
@@ -378,6 +379,7 @@
       "PedidoNome": {
         "properties": {
           "nome": {
+            "description": "Como a usuária quer ser chamada (só o primeiro nome ou apelido)",
             "title": "Nome",
             "type": "string"
           }

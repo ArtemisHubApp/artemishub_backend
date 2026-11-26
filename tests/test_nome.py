@@ -13,12 +13,12 @@ ACEITOS = [
     ("José da Conceição", "José da Conceição"),
     ("Zoë Ñandú", "Zoë Ñandú"),
     ("李小龙", "李小龙"),
-    ("a" * 80, "a" * 80),
+    ("a" * 40, "a" * 40),
 ]
 RECUSADOS = [
     "",
     "   ",
-    "a" * 81,
+    "a" * 41,
     f"{SEGREDO_NO_NOME}\x00",
     f"{SEGREDO_NO_NOME}\n",
     7,
@@ -150,7 +150,9 @@ async def test_excluir_a_conta_apaga_o_nome(cliente, entrar_como, sessao):
     assert await contar(sessao, Usuaria, nome=NOME_DE_TESTE) == 0
 
 
-async def test_nome_nao_vai_para_os_agentes_nem_para_o_log(cliente, entrar_como, agentes, caplog):
+async def test_nome_ainda_nao_vai_para_os_agentes_nem_para_o_log(
+    cliente, entrar_como, agentes, caplog
+):
     nome = "Nome Fictício Rastreável"
     caplog.set_level(logging.DEBUG)
     assert (await cadastrar(cliente, nome=nome)).status_code == 201

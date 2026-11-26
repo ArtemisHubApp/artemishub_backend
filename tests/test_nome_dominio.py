@@ -16,7 +16,7 @@ from artemis_backend.domain.usuaria import NOME_MAXIMO, NomeInvalido, normalizar
         ("Zoë Ñandú", "Zoë Ñandú"),
         ("李小龙", "李小龙"),
         ("a" * NOME_MAXIMO, "a" * NOME_MAXIMO),
-        ("a" * 40 + "   " + "b" * 39, "a" * 40 + " " + "b" * 39),
+        ("a" * 20 + "   " + "b" * 19, "a" * 20 + " " + "b" * 19),
     ],
 )
 def test_nome_valido_e_normalizado(entrada, esperado):

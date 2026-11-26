@@ -46,13 +46,13 @@ Python 3.12, [uv](https://docs.astral.sh/uv/), FastAPI, SQLAlchemy 2 (async) com
 
 | Rota | Corpo | Resposta |
 |---|---|---|
-| `POST /v1/auth/cadastro` | `nome` (1 a 80 caracteres), `email`, `senha` (8 a 128 caracteres), `consentimento` (precisa ser o booleano `true`) | 201 com `{"id": ...}`; 409 se o e-mail já existe; 422 se algo for inválido |
+| `POST /v1/auth/cadastro` | `nome` (como a usuária quer ser chamada, só o primeiro nome ou apelido; 1 a 40 caracteres), `email`, `senha` (8 a 128 caracteres), `consentimento` (precisa ser o booleano `true`) | 201 com `{"id": ...}`; 409 se o e-mail já existe; 422 se algo for inválido |
 | `POST /v1/auth/login` | `email`, `senha` | 200 com `{"token": ..., "tipo": "bearer"}` (JWT de 60 minutos, sem refresh) e o cookie de sessão; 401 para senha errada ou e-mail sem conta, com a mesma resposta |
 | `POST /v1/auth/sair` | nenhum | 204 e apaga o cookie; também 204 sem sessão. Não invalida um token já copiado |
 
 No cadastro e no login, se o cabeçalho `Origin` vier, precisa ser igual a `ARTEMIS_ORIGEM`; senão, 403.
 
-O e-mail é normalizado (espaços e maiúsculas) no cadastro e no login. O nome é como a usuária quer ser chamada: aceita qualquer letra (acentos, nome social), perde os espaços das pontas, reduz os repetidos a um e não pode ter caractere de controle; 1 a 80 caracteres depois disso, senão 422 sem repetir o que veio. Contas anteriores à migração 0004 ficaram com o nome provisório `Usuária`. A senha é guardada com argon2. As respostas 422 não repetem o que foi enviado. O cadastro repetido usa `INSERT ... ON CONFLICT DO NOTHING`, para o e-mail não aparecer no log do Postgres.
+O e-mail é normalizado (espaços e maiúsculas) no cadastro e no login. O nome é como a usuária quer ser chamada (só o primeiro nome ou apelido, nunca o nome completo): aceita qualquer letra (acentos, nome social), perde os espaços das pontas, reduz os repetidos a um e não pode ter caractere de controle; 1 a 40 caracteres depois disso, senão 422 sem repetir o que veio. Contas anteriores à migração 0004 ficaram com o nome provisório `Usuária`. O nome ainda não vai para os agentes (entra com o contrato da agents#36); nunca vai para os logs. O texto do consentimento já avisa que ele será enviado ao Gemini. A senha é guardada com argon2. As respostas 422 não repetem o que foi enviado. O cadastro repetido usa `INSERT ... ON CONFLICT DO NOTHING`, para o e-mail não aparecer no log do Postgres.
 
 ### Sessão no navegador
 
