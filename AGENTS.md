@@ -22,3 +22,5 @@ As regras para agentes e pessoas vivem no orquestrador: [artemishub_orchestratio
 - Erros: só `BancoIndisponivel` (levantada em `adapters/banco.py`) e o pool esgotado viram 503; o resto, inclusive `ProgrammingError` e `OSError` de outra origem, é 500.
 - Conta: `GET /v1/conta` (id e e-mail da dona do token), `DELETE /v1/conta` (apaga também o cookie) e `GET /v1/consentimento` (`adapters/rotas_conta.py`). A exclusão apaga só a dona do token e o cascade do banco leva conversas e mensagens; quem perde a corrida de duas exclusões recebe o mesmo 401 de token inválido. Os traces do Langfuse não são apagados. O texto `CONSENTIMENTO` (em `domain/usuaria.py`) é provisório até o ADR de LGPD.
 - Cadastro usa `ON CONFLICT (email) DO NOTHING` (`repositorio_contas.py`): capturar a violação de unicidade deixaria o e-mail no log do Postgres (`tests/test_log_do_postgres.py`).
+
+- A API não usa o status 400: corpo ilegível vira 422 no formato documentado (`adapters/validacao.py`). Para erro de regra, use 409 ou 422.
