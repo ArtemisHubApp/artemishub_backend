@@ -52,7 +52,7 @@ Python 3.12, [uv](https://docs.astral.sh/uv/), FastAPI, SQLAlchemy 2 (async) com
 
 No cadastro e no login, se o cabeçalho `Origin` vier, precisa ser igual a `ARTEMIS_ORIGEM`; senão, 403.
 
-O e-mail é normalizado (espaços e maiúsculas) no cadastro e no login. O nome é como a usuária quer ser chamada (só o primeiro nome ou apelido, nunca o nome completo): aceita qualquer letra (acentos, nome social), perde os espaços das pontas, reduz os repetidos a um e não pode ter caractere de controle; 1 a 40 caracteres depois disso, senão 422 sem repetir o que veio. Contas anteriores à migração 0004 ficaram com o nome provisório `Usuária`. O nome ainda não vai para os agentes (entra com o contrato da agents#36); nunca vai para os logs. O texto do consentimento já avisa que ele será enviado ao Gemini. A senha é guardada com argon2. As respostas 422 não repetem o que foi enviado. O cadastro repetido usa `INSERT ... ON CONFLICT DO NOTHING`, para o e-mail não aparecer no log do Postgres.
+O e-mail é normalizado (espaços e maiúsculas) no cadastro e no login. O nome é como a usuária quer ser chamada (só o primeiro nome ou apelido, nunca o nome completo): aceita qualquer letra (acentos, nome social), perde os espaços das pontas, reduz os repetidos a um e não pode ter caractere de controle; 1 a 40 caracteres depois disso (a contagem é em pontos de código Unicode, depois de normalizar em NFC: um emoji pode valer mais de 1; caracteres invisíveis e nome sem letra, número ou símbolo são recusados), senão 422 sem repetir o que veio. Contas anteriores à migração 0004 ficaram com o nome provisório `Usuária`. O nome ainda não vai para os agentes (entra com o contrato da agents#36); nunca vai para os logs. O texto do consentimento já avisa que ele será enviado ao Gemini. A senha é guardada com argon2. As respostas 422 não repetem o que foi enviado. O cadastro repetido usa `INSERT ... ON CONFLICT DO NOTHING`, para o e-mail não aparecer no log do Postgres.
 
 ### Sessão no navegador
 
@@ -73,7 +73,7 @@ A API não sobe com um valor fora disso.
 
 | Rota | Resposta |
 |---|---|
-| `GET /v1/consentimento` | 200 com `{"texto": ...}`. Pública, para ser lida antes do cadastro. O texto cita o Google Gemini e o Langfuse, que recebem o texto das perguntas |
+| `GET /v1/consentimento` | 200 com `{"texto": ...}`. Pública, para ser lida antes do cadastro. O texto cita o Google Gemini e o Langfuse, que recebem o texto das perguntas e o nome com que a usuária quer ser chamada |
 | `GET /v1/conta` | Exige sessão. 200 com `{"id": ..., "nome": ..., "email": ...}` da própria usuária; 401 sem sessão válida |
 | `PATCH /v1/conta` | Exige sessão (com cookie, `Origin` igual a `ARTEMIS_ORIGEM`, senão 403). Corpo `{"nome": ...}` com as mesmas regras do cadastro; 200 com a conta; 422 se o nome for inválido. Só muda a conta da dona do token; `id` e e-mail do corpo são ignorados |
 | `DELETE /v1/conta` | Exige sessão. 204 e apaga a conta, as conversas, as mensagens e o cookie, sem volta; 401 sem sessão válida, inclusive numa segunda exclusão da mesma conta. O e-mail pode ser cadastrado de novo, sem as conversas antigas |

@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, StrictBool, field_validator
 
 from artemis_backend.domain.usuaria import (
+    NOME_MAXIMO,
     SENHA_MAXIMA,
     SENHA_MINIMA,
     EmailInvalido,
@@ -29,7 +30,14 @@ def _nome_valido(nome: str) -> str:
 
 
 class PedidoNome(BaseModel):
-    nome: str = Field(description="Como a usuária quer ser chamada (só o primeiro nome ou apelido)")
+    nome: str = Field(
+        description=(
+            "Como a usuária quer ser chamada (só o primeiro nome ou apelido). De 1 a "
+            f"{NOME_MAXIMO} caracteres, contados depois de tirar os espaços das pontas e "
+            "reduzir os repetidos."
+        ),
+        json_schema_extra={"minLength": 1, "maxLength": NOME_MAXIMO},
+    )
 
     _normalizar_nome = field_validator("nome")(_nome_valido)
 

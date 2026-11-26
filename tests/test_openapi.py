@@ -123,3 +123,11 @@ def test_datas_sao_date_time():
                 "format": "date-time",
                 "title": campo.replace("_", " ").title(),
             }
+
+
+def test_nome_documenta_o_tamanho_em_caracteres():
+    esquemas = DOCUMENTO["components"]["schemas"]
+    for corpo in ("PedidoCadastro", "PedidoNome"):
+        nome = esquemas[corpo]["properties"]["nome"]
+        assert (nome["minLength"], nome["maxLength"]) == (1, 40)
+        assert "caracteres" in nome["description"]

@@ -7,6 +7,9 @@ from datetime import datetime
 SENHA_MINIMA = 8
 SENHA_MAXIMA = 128
 NOME_MAXIMO = 40
+_JUNTADORES = "\u200c\u200d"
+# Parecem espaço mas não são: braille em branco e preenchimentos do hangul.
+_PREENCHIMENTOS = "\u2800\u3164\u115f\u1160\uffa0"
 _EMAIL_MAXIMO = 254
 _FORMATO_EMAIL = re.compile(r"[^\s@\x00]+@[^\s@\x00]+\.[^\s@\x00]+")
 
@@ -73,13 +76,24 @@ def normalizar_email(email: str) -> str:
 
 def normalizar_nome(nome: str) -> str:
     """Tira espaços das pontas, reduz os repetidos a um; recusa vazio, longo ou com controle."""
-    # Categorias Cc (controle, inclusive NUL) e Cs (surrogate, que não vira UTF-8).
-    if any(unicodedata.category(letra) in ("Cc", "Cs") for letra in nome):
+    if any(_e_invisivel(letra) for letra in nome):
         raise NomeInvalido("Nome inválido")
-    normalizado = " ".join(nome.split())
-    if not 1 <= len(normalizado) <= NOME_MAXIMO:
+    normalizado = " ".join(unicodedata.normalize("NFC", nome).split())
+    # Exige algo que se vê: letra, número ou símbolo (marca solta não conta).
+    if not 1 <= len(normalizado) <= NOME_MAXIMO or not any(
+        unicodedata.category(letra)[0] in "LNS" for letra in normalizado
+    ):
         raise NomeInvalido("Nome inválido")
     return normalizado
+
+
+def _e_invisivel(letra: str) -> bool:
+    categoria = unicodedata.category(letra)
+    if categoria in ("Cc", "Cs"):  # controle (inclusive NUL); surrogate, que não vira UTF-8
+        return True
+    if categoria == "Cf":  # formatação: só ZWNJ e ZWJ têm uso em nomes e emojis
+        return letra not in _JUNTADORES
+    return letra in _PREENCHIMENTOS
 
 
 def validar_senha(senha: str) -> None:

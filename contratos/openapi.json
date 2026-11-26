@@ -337,7 +337,9 @@
             "type": "string"
           },
           "nome": {
-            "description": "Como a usuária quer ser chamada (só o primeiro nome ou apelido)",
+            "description": "Como a usuária quer ser chamada (só o primeiro nome ou apelido). De 1 a 40 caracteres, contados depois de tirar os espaços das pontas e reduzir os repetidos.",
+            "maxLength": 40,
+            "minLength": 1,
             "title": "Nome",
             "type": "string"
           },
@@ -379,7 +381,9 @@
       "PedidoNome": {
         "properties": {
           "nome": {
-            "description": "Como a usuária quer ser chamada (só o primeiro nome ou apelido)",
+            "description": "Como a usuária quer ser chamada (só o primeiro nome ou apelido). De 1 a 40 caracteres, contados depois de tirar os espaços das pontas e reduzir os repetidos.",
+            "maxLength": 40,
+            "minLength": 1,
             "title": "Nome",
             "type": "string"
           }

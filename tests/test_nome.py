@@ -21,6 +21,10 @@ RECUSADOS = [
     "a" * 41,
     f"{SEGREDO_NO_NOME}\x00",
     f"{SEGREDO_NO_NOME}\n",
+    f"{SEGREDO_NO_NOME}\u202e",
+    "\u2800",
+    "\u3164",
+    "\u0301",
     7,
     None,
     ["Ana"],
@@ -165,4 +169,11 @@ async def test_nome_ainda_nao_vai_para_os_agentes_nem_para_o_log(
     assert r.status_code == 201
     assert "Rastreável" not in repr(agentes.chamadas)
     assert "Rastreável" not in caplog.text
+
+
+async def test_cadastro_e_login_nao_deixam_o_email_no_log(cliente, entrar_como, caplog):
+    caplog.set_level(logging.DEBUG)
+
+    await entrar_como(ANA)
+
     assert ANA not in caplog.text
