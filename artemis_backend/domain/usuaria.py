@@ -1,10 +1,12 @@
 import re
+import unicodedata
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
 SENHA_MINIMA = 8
 SENHA_MAXIMA = 128
+NOME_MAXIMO = 80
 _EMAIL_MAXIMO = 254
 _FORMATO_EMAIL = re.compile(r"[^\s@\x00]+@[^\s@\x00]+\.[^\s@\x00]+")
 
@@ -19,6 +21,10 @@ CONSENTIMENTO = (
 
 
 class EmailInvalido(ValueError):
+    pass
+
+
+class NomeInvalido(ValueError):
     pass
 
 
@@ -45,6 +51,7 @@ class TokenInvalido(Exception):
 @dataclass(frozen=True)
 class Usuaria:
     id: uuid.UUID
+    nome: str
     email: str
     senha_hash: str
     consentiu_em: datetime
@@ -60,6 +67,17 @@ def normalizar_email(email: str) -> str:
     except UnicodeEncodeError:
         # Surrogate solto: não vira UTF-8, então o banco nem o log conseguiriam tratá-lo.
         raise EmailInvalido("E-mail inválido") from None
+    return normalizado
+
+
+def normalizar_nome(nome: str) -> str:
+    """Tira espaços das pontas, reduz os repetidos a um; recusa vazio, longo ou com controle."""
+    # Categorias Cc (controle, inclusive NUL) e Cs (surrogate, que não vira UTF-8).
+    if any(unicodedata.category(letra) in ("Cc", "Cs") for letra in nome):
+        raise NomeInvalido("Nome inválido")
+    normalizado = " ".join(nome.split())
+    if not 1 <= len(normalizado) <= NOME_MAXIMO:
+        raise NomeInvalido("Nome inválido")
     return normalizado
 
 

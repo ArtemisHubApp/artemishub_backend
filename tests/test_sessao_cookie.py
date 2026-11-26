@@ -64,7 +64,7 @@ async def test_cookie_abre_as_rotas(cliente, entrar_como):
     leitura = com_origem(ana, None)
     r = await cliente.get("/v1/conta", headers=leitura)
     assert r.status_code == 200
-    assert set(r.json()) == {"id", "email"}
+    assert set(r.json()) == {"id", "nome", "email"}
     assert r.json()["email"] == ANA
     assert (await cliente.get("/v1/conversas", headers=leitura)).status_code == 200
     assert (await cliente.post("/v1/conversas", headers=ana)).status_code == 201

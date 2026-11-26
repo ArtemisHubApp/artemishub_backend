@@ -16,7 +16,13 @@ from artemis_backend.config import Config
 from artemis_backend.main import criar_app
 from tests.apoio.agentes import AgentesFake
 from tests.apoio.banco import config_alembic
-from tests.apoio.valores import ANA, ORIGEM_DE_TESTE, SEGREDO_DE_TESTE, SENHA_DE_TESTE
+from tests.apoio.valores import (
+    ANA,
+    NOME_DE_TESTE,
+    ORIGEM_DE_TESTE,
+    SEGREDO_DE_TESTE,
+    SENHA_DE_TESTE,
+)
 
 
 @pytest.fixture(scope="session")
@@ -97,7 +103,8 @@ def entrar_como(cliente):
 
     async def entrar(email: str) -> dict:
         corpo = {"email": email, "senha": SENHA_DE_TESTE}
-        await cliente.post("/v1/auth/cadastro", json={**corpo, "consentimento": True})
+        cadastro = {**corpo, "nome": NOME_DE_TESTE, "consentimento": True}
+        await cliente.post("/v1/auth/cadastro", json=cadastro)
         r = await cliente.post("/v1/auth/login", json=corpo)
         return {"Authorization": f"Bearer {r.json()['token']}"}
 

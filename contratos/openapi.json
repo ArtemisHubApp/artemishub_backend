@@ -38,10 +38,15 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
           }
         },
         "required": [
           "id",
+          "nome",
           "email"
         ],
         "title": "ContaSaida",
@@ -331,6 +336,10 @@
             "title": "Email",
             "type": "string"
           },
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          },
           "senha": {
             "maxLength": 128,
             "minLength": 8,
@@ -340,6 +349,7 @@
         },
         "required": [
           "email",
+          "nome",
           "senha",
           "consentimento"
         ],
@@ -363,6 +373,19 @@
           "senha"
         ],
         "title": "PedidoLogin",
+        "type": "object"
+      },
+      "PedidoNome": {
+        "properties": {
+          "nome": {
+            "title": "Nome",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nome"
+        ],
+        "title": "PedidoNome",
         "type": "object"
       },
       "PedidoPergunta": {
@@ -728,6 +751,84 @@
           }
         ],
         "summary": "Ver",
+        "tags": [
+          "conta"
+        ]
+      },
+      "patch": {
+        "description": "Troca o nome da dona do token; id e e-mail não mudam por aqui.",
+        "operationId": "renomear_v1_conta_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoNome"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContaSaida"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Sem sessão válida"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Origem não permitida"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDeValidacao"
+                }
+              }
+            },
+            "description": "Pedido inválido"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Banco indisponível"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Renomear",
         "tags": [
           "conta"
         ]

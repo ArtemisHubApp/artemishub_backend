@@ -14,6 +14,7 @@ ERROS = {
     ("POST", "/v1/auth/sair"): {"403"},
     ("GET", "/v1/consentimento"): set(),
     ("GET", "/v1/conta"): {"401", "503"},
+    ("PATCH", "/v1/conta"): {"401", "403", "422", "503"},
     ("DELETE", "/v1/conta"): {"401", "403", "503"},
     ("GET", "/v1/conversas"): {"401", "422", "503"},
     ("POST", "/v1/conversas"): {"401", "403", "503"},
