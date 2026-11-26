@@ -1,7 +1,7 @@
 # Design: currículo por PDF ou foto, para conversar sobre ele com a Artemis
 
 **Issue:** ArtemisHubApp/artemishub_backend#3 (RF-03). Relacionadas: ArtemisHubApp/artemishub_agents#14 (leitura multimodal, Ana Julia), ArtemisHubApp/artemishub_agents#21 (segurança do currículo, Eduarda), ArtemisHubApp/artemishub_agents#36 (contrato `responder`), ArtemisHubApp/artemishub_docs#16 (privacidade e retenção do currículo) e ArtemisHubApp/artemishub_frontend#2 (frontend).
-**Data:** 26/11/2026. Conversa de desenho com a Amanda. **Status: rascunho, aguardando aprovação.**
+**Data:** 26/11/2026. Conversa de desenho com a Amanda. **Aprovado pela Amanda em 26/11/2026.**
 
 ## Por que
 
@@ -17,8 +17,9 @@ Requisitos do PDR atendidos: RF-03 (envio de currículo), RF-04 (competências c
 2. **Conferir** o texto extraído antes de qualquer análise, corrigindo erros de leitura e retirando dados pessoais que ela não quer compartilhar.
 3. **Guardar só o texto conferido**, numa área "Meu currículo", até ela substituir, apagar ou excluir a conta. O arquivo original nunca é guardado.
 4. **Conversar** sobre o currículo: sugestões de melhoria, competências identificadas com o trecho de evidência e lacunas em relação ao objetivo profissional.
-5. **Confirmar competências** sugeridas para o perfil (RF-02 e RF-14). Só competência confirmada por ela entra no perfil.
+5. **Confirmar competências** sugeridas (RF-14). Só competência confirmada por ela fica guardada.
 6. **A foto não sai da nossa infraestrutura:** a leitura de imagem roda num modelo aberto, na nossa CPU.
+7. **Objetivo profissional:** a usuária informa o objetivo (texto curto), usado para apontar lacunas.
 
 ## Fora do escopo desta fatia
 
@@ -26,13 +27,14 @@ Requisitos do PDR atendidos: RF-03 (envio de currículo), RF-04 (competências c
 - Arquivos DOCX, ou mais de uma foto por currículo (currículo de várias páginas em fotos separadas).
 - Gerar um currículo novo em PDF a partir das sugestões.
 - Guardar várias versões do currículo: existe um currículo atual por usuária.
+- O resto do perfil profissional do RF-02 (formação, experiências, localização, área): fica para outra fatia. Esta fatia guarda só o objetivo e as competências confirmadas.
 - Leitura de imagem por GPU ou por serviço pago.
 
 ## Anti-objetivos (falha mesmo funcionando)
 
 - O arquivo original (PDF ou foto) ficar gravado em qualquer lugar: disco, banco, Blob, log, trace do Langfuse.
 - A foto ou o PDF saírem da nossa infraestrutura para serem lidos (Gemini, API de inferência do Hugging Face ou outro serviço).
-- E-mail, telefone, CPF ou endereço chegarem aos agents, ao LLM ou ao Langfuse.
+- E-mail, telefone, CPF ou CEP chegarem aos agents, ao LLM ou ao Langfuse. Nome e endereço só chegam se a usuária escolher mantê-los.
 - A Artemis seguir uma instrução escrita no currículo ("ignore suas instruções...").
 - A análise usar sexo, raça, idade ou foto para dizer quanto ela vale (RNF-14).
 - Uma usuária ver o currículo de outra (RNF-06).
@@ -96,8 +98,9 @@ sequenceDiagram
 
 ### 3. Conferência
 
-- A usuária vê o texto extraído, corrige o que o modelo leu errado e escolhe quais dados pessoais retirar. E-mail, telefone, CPF e CEP vêm marcados por padrão.
+- A usuária vê o texto extraído e corrige o que o modelo leu errado.
 - Nada é guardado até ela confirmar.
+- **E-mail, telefone, CPF e CEP são sempre retirados pelo servidor**, sem opção de desmarcar. A usuária decide só sobre o nome e o endereço, que vêm marcados por padrão.
 - A tela explica a finalidade: o texto será usado para conversar sobre o currículo e sugerir competências. Esse consentimento entra no ADR de LGPD.
 
 ### 4. Guarda
@@ -108,14 +111,18 @@ sequenceDiagram
 
 ### 5. Conversa sobre o currículo
 
-- O pedido `responder v1` ganha um campo opcional com o texto mascarado do currículo e o objetivo profissional, quando a conversa é sobre o currículo. O contrato muda no `contratos/responder.v1.schema.json` e na agents#36.
+- **Conversa sobre o currículo é um tipo de conversa**, criado a partir da tela "Meu currículo". Só esse tipo manda o currículo aos agents; conversas comuns nunca mandam.
+- Se ela substituir ou apagar o currículo, as conversas antigas sobre ele continuam no histórico, mas novas perguntas nelas usam o currículo atual (ou avisam que não há currículo).
+- O pedido `responder v1` ganha um campo opcional com o texto mascarado do currículo e o objetivo profissional, só nas conversas desse tipo. O contrato muda no `contratos/responder.v1.schema.json` e na agents#36.
 - Nos agents, o currículo entra no prompt **como dado não confiável**, delimitado, como já é feito com os trechos do RAG. Testes de injeção na agents#21.
-- Cada competência sugerida vem com o **trecho do currículo** que a sustenta (RF-04).
+- A resposta dos agents traz, além do texto, uma **lista estruturada de competências sugeridas**, cada uma com o **trecho do currículo** que a sustenta (RF-04). Isso muda a parte `resposta` do contrato, não só o pedido.
 - Lacunas em relação ao objetivo (RF-14) só aparecem se houver objetivo. Se não houver, a Artemis pergunta qual é.
 
 ### 6. Confirmação para o perfil
 
-- As competências sugeridas aparecem com um botão para confirmar ou descartar. Só as confirmadas vão para o perfil (RF-14 usa "competências confirmadas").
+- As competências sugeridas aparecem com um botão para confirmar ou descartar. Só as confirmadas são guardadas (RF-14 usa "competências confirmadas"), com o trecho de evidência.
+- Sugestões não confirmadas não são guardadas à parte: ficam na mensagem da conversa, e ela pode confirmar depois a partir dela.
+- Tabelas novas: objetivo profissional (um por usuária) e competências confirmadas. Excluir a conta apaga as duas.
 
 ## Escolha do modelo de leitura (primeira tarefa do plano)
 
