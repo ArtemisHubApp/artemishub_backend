@@ -10,6 +10,7 @@ from artemis_backend.domain.usuaria import (
     TokenInvalido,
     Usuaria,
     normalizar_email,
+    normalizar_nome,
     validar_senha,
 )
 
@@ -21,6 +22,9 @@ class RepositorioContas(Protocol):
     async def por_email(self, email: str) -> Usuaria | None: ...
 
     async def por_id(self, id: uuid.UUID) -> Usuaria | None: ...
+
+    async def renomear(self, id: uuid.UUID, nome: str) -> Usuaria | None:
+        """Troca o nome e devolve a usuária; None se não existe (ou já foi apagada)."""
 
     async def excluir(self, id: uuid.UUID) -> bool:
         """Apaga a usuária e, em cascata, tudo dela; False se não existe (ou já foi apagada)."""
@@ -58,13 +62,15 @@ class ServicoContas:
         # Hash de uma senha qualquer, para o login de e-mail inexistente gastar o mesmo tempo.
         self._hash_ficticio = hasher.hash("senha-ficticia-so-para-gastar-tempo")
 
-    async def cadastrar(self, email: str, senha: str, consentimento: bool) -> uuid.UUID:
+    async def cadastrar(self, nome: str, email: str, senha: str, consentimento: bool) -> uuid.UUID:
         if consentimento is not True:
             raise ConsentimentoAusente("O consentimento é obrigatório")
+        nome = normalizar_nome(nome)
         email = normalizar_email(email)
         validar_senha(senha)
         usuaria = Usuaria(
             id=uuid.uuid4(),
+            nome=nome,
             email=email,
             senha_hash=await asyncio.to_thread(self._hasher.hash, senha),
             consentiu_em=self._relogio.agora(),
@@ -93,6 +99,12 @@ class ServicoContas:
         usuaria = await self._repositorio.por_id(usuaria_id)
         if usuaria is None:
             # Conta apagada entre a checagem do token e a leitura.
+            raise TokenInvalido
+        return usuaria
+
+    async def renomear(self, usuaria_id: uuid.UUID, nome: str) -> Usuaria:
+        usuaria = await self._repositorio.renomear(usuaria_id, normalizar_nome(nome))
+        if usuaria is None:
             raise TokenInvalido
         return usuaria
 

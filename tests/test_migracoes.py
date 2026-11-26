@@ -50,7 +50,13 @@ async def test_migracao_sobe_desce_e_bate_com_os_modelos(criar_banco_vazio):
 
 
 def nova_usuaria(email: str = "ana@example.com") -> Usuaria:
-    return Usuaria(id=uuid.uuid4(), email=email, senha_hash="hash", consentiu_em=datetime.now(UTC))
+    return Usuaria(
+        id=uuid.uuid4(),
+        nome="Ana Souza",
+        email=email,
+        senha_hash="hash",
+        consentiu_em=datetime.now(UTC),
+    )
 
 
 async def test_apagar_usuaria_apaga_conversas_e_mensagens(banco):
@@ -127,3 +133,43 @@ async def test_mensagens_tem_indice_em_pergunta_id(criar_banco_vazio):
         i["name"] == "ix_mensagens_pergunta_id" and i["column_names"] == ["pergunta_id"]
         for i in indices
     )
+
+
+async def colunas_de_usuarias(url: str) -> set[str]:
+    motor = create_async_engine(url)
+    async with motor.connect() as conexao:
+        colunas = await conexao.run_sync(
+            lambda c: {coluna["name"] for coluna in inspect(c).get_columns("usuarias")}
+        )
+    await motor.dispose()
+    return colunas
+
+
+async def test_migracao_do_nome_da_nome_provisorio_as_contas_existentes(criar_banco_vazio):
+    url = await criar_banco_vazio()
+    alembic = config_alembic(url)
+    await asyncio.to_thread(command.upgrade, alembic, "0003")
+    motor = create_async_engine(url)
+    async with motor.begin() as conexao:
+        await conexao.execute(
+            text(
+                "INSERT INTO usuarias (id, email, senha_hash, consentiu_em) "
+                "VALUES (gen_random_uuid(), 'antiga@example.com', 'hash', now())"
+            )
+        )
+
+    await asyncio.to_thread(command.upgrade, alembic, "head")
+
+    async with motor.connect() as conexao:
+        assert (await conexao.execute(text("SELECT nome FROM usuarias"))).scalar_one() == "Usuária"
+        with pytest.raises(IntegrityError):
+            await conexao.execute(
+                text(
+                    "INSERT INTO usuarias (id, email, senha_hash, consentiu_em) "
+                    "VALUES (gen_random_uuid(), 'sem-nome@example.com', 'hash', now())"
+                )
+            )
+    await motor.dispose()
+
+    await asyncio.to_thread(command.downgrade, alembic, "0003")
+    assert "nome" not in await colunas_de_usuarias(url)

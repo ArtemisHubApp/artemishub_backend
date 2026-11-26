@@ -1,16 +1,22 @@
 import re
+import unicodedata
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
 SENHA_MINIMA = 8
 SENHA_MAXIMA = 128
+NOME_MAXIMO = 40
+_JUNTADORES = "\u200c\u200d"
+# Parecem espaço mas não são: braille em branco e preenchimentos do hangul.
+_PREENCHIMENTOS = "\u2800\u3164\u115f\u1160\uffa0"
 _EMAIL_MAXIMO = 254
 _FORMATO_EMAIL = re.compile(r"[^\s@\x00]+@[^\s@\x00]+\.[^\s@\x00]+")
 
 # A equipe revisa o texto no ADR de LGPD.
 CONSENTIMENTO = (
-    "Guardamos suas conversas para você consultar depois. O texto das perguntas é enviado "
+    "Guardamos suas conversas para você consultar depois. O texto das perguntas e o nome "
+    "com que você quer ser chamada são enviados "
     "ao Google Gemini, para gerar a resposta, e ao Langfuse, para acompanhar a qualidade. "
     "No plano gratuito do Gemini, o Google pode usar esse texto para melhorar os produtos "
     "dele. Você pode apagar conversas e a conta quando quiser; os registros no Langfuse "
@@ -19,6 +25,10 @@ CONSENTIMENTO = (
 
 
 class EmailInvalido(ValueError):
+    pass
+
+
+class NomeInvalido(ValueError):
     pass
 
 
@@ -45,6 +55,7 @@ class TokenInvalido(Exception):
 @dataclass(frozen=True)
 class Usuaria:
     id: uuid.UUID
+    nome: str
     email: str
     senha_hash: str
     consentiu_em: datetime
@@ -61,6 +72,28 @@ def normalizar_email(email: str) -> str:
         # Surrogate solto: não vira UTF-8, então o banco nem o log conseguiriam tratá-lo.
         raise EmailInvalido("E-mail inválido") from None
     return normalizado
+
+
+def normalizar_nome(nome: str) -> str:
+    """Tira espaços das pontas, reduz os repetidos a um; recusa vazio, longo ou com controle."""
+    if any(_e_invisivel(letra) for letra in nome):
+        raise NomeInvalido("Nome inválido")
+    normalizado = " ".join(unicodedata.normalize("NFC", nome).split())
+    # Exige algo que se vê: letra, número ou símbolo (marca solta não conta).
+    if not 1 <= len(normalizado) <= NOME_MAXIMO or not any(
+        unicodedata.category(letra)[0] in "LNS" for letra in normalizado
+    ):
+        raise NomeInvalido("Nome inválido")
+    return normalizado
+
+
+def _e_invisivel(letra: str) -> bool:
+    categoria = unicodedata.category(letra)
+    if categoria in ("Cc", "Cs"):  # controle (inclusive NUL); surrogate, que não vira UTF-8
+        return True
+    if categoria == "Cf":  # formatação: só ZWNJ e ZWJ têm uso em nomes e emojis
+        return letra not in _JUNTADORES
+    return letra in _PREENCHIMENTOS
 
 
 def validar_senha(senha: str) -> None:

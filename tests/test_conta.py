@@ -11,11 +11,12 @@ from artemis_backend.domain.usuaria import TokenInvalido
 from tests.apoio.agentes import resposta_dos_agentes
 from tests.apoio.banco import contar
 from tests.apoio.sessao import em_cookie, rotas_protegidas
-from tests.apoio.valores import ANA, BIA, SENHA_DE_TESTE
+from tests.apoio.valores import ANA, BIA, NOME_DE_TESTE, SENHA_DE_TESTE
 
 MENSAGENS_NO_VOLUME = 60_000
 TEXTO_DO_CONSENTIMENTO = (
-    "Guardamos suas conversas para você consultar depois. O texto das perguntas é enviado "
+    "Guardamos suas conversas para você consultar depois. O texto das perguntas e o nome "
+    "com que você quer ser chamada são enviados "
     "ao Google Gemini, para gerar a resposta, e ao Langfuse, para acompanhar a qualidade. "
     "No plano gratuito do Gemini, o Google pode usar esse texto para melhorar os produtos "
     "dele. Você pode apagar conversas e a conta quando quiser; os registros no Langfuse "
@@ -94,7 +95,12 @@ async def test_email_pode_ser_cadastrado_de_novo(cliente, entrar_como):
 
     r = await cliente.post(
         "/v1/auth/cadastro",
-        json={"email": ANA, "senha": SENHA_DE_TESTE, "consentimento": True},
+        json={
+            "nome": NOME_DE_TESTE,
+            "email": ANA,
+            "senha": SENHA_DE_TESTE,
+            "consentimento": True,
+        },
     )
 
     assert r.status_code == 201

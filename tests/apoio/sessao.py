@@ -4,7 +4,13 @@ from http.cookies import SimpleCookie
 import httpx
 import jwt
 
-from tests.apoio.valores import ANA, ORIGEM_DE_TESTE, SEGREDO_DE_TESTE, SENHA_DE_TESTE
+from tests.apoio.valores import (
+    ANA,
+    NOME_DE_TESTE,
+    ORIGEM_DE_TESTE,
+    SEGREDO_DE_TESTE,
+    SENHA_DE_TESTE,
+)
 
 COOKIE = "artemis_sessao"
 ORIGEM_NEGADA = {"detail": "Origem não permitida"}
@@ -30,7 +36,12 @@ async def logar(cliente, **cabecalhos) -> httpx.Response:
 
 
 async def cadastrar(cliente, **cabecalhos) -> httpx.Response:
-    corpo = {"email": ANA, "senha": SENHA_DE_TESTE, "consentimento": True}
+    corpo = {
+        "nome": NOME_DE_TESTE,
+        "email": ANA,
+        "senha": SENHA_DE_TESTE,
+        "consentimento": True,
+    }
     return await cliente.post("/v1/auth/cadastro", json=corpo, headers=cabecalhos)
 
 

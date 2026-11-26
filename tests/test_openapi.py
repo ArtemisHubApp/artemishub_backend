@@ -14,6 +14,7 @@ ERROS = {
     ("POST", "/v1/auth/sair"): {"403"},
     ("GET", "/v1/consentimento"): set(),
     ("GET", "/v1/conta"): {"401", "503"},
+    ("PATCH", "/v1/conta"): {"401", "403", "422", "503"},
     ("DELETE", "/v1/conta"): {"401", "403", "503"},
     ("GET", "/v1/conversas"): {"401", "422", "503"},
     ("POST", "/v1/conversas"): {"401", "403", "503"},
@@ -122,3 +123,11 @@ def test_datas_sao_date_time():
                 "format": "date-time",
                 "title": campo.replace("_", " ").title(),
             }
+
+
+def test_nome_documenta_o_tamanho_em_caracteres():
+    esquemas = DOCUMENTO["components"]["schemas"]
+    for corpo in ("PedidoCadastro", "PedidoNome"):
+        nome = esquemas[corpo]["properties"]["nome"]
+        assert (nome["minLength"], nome["maxLength"]) == (1, 40)
+        assert "caracteres" in nome["description"]

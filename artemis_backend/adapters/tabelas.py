@@ -21,6 +21,7 @@ class Usuaria(Base):
     __tablename__ = "usuarias"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    nome: Mapped[str] = mapped_column(Text)
     email: Mapped[str] = mapped_column(Text, unique=True)
     senha_hash: Mapped[str] = mapped_column(Text)
     criada_em: Mapped[datetime] = _agora()

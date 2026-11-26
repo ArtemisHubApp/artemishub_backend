@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from tests.apoio.valores import SENHA_DE_TESTE
+from tests.apoio.valores import NOME_DE_TESTE, SENHA_DE_TESTE
 
 PRAZO_DO_LOG = 20  # segundos
 
@@ -37,7 +37,12 @@ async def logs_ate_o_marcador(postgres) -> str:
 
 async def test_cadastro_repetido_nao_deixa_o_email_no_log_do_postgres(cliente, postgres):
     email = f"dup-{uuid.uuid4().hex}@example.com"
-    corpo = {"email": email, "senha": SENHA_DE_TESTE, "consentimento": True}
+    corpo = {
+        "nome": NOME_DE_TESTE,
+        "email": email,
+        "senha": SENHA_DE_TESTE,
+        "consentimento": True,
+    }
     assert (await cliente.post("/v1/auth/cadastro", json=corpo)).status_code == 201
 
     sequencial = await cliente.post("/v1/auth/cadastro", json=corpo)
@@ -53,7 +58,12 @@ async def test_cadastro_repetido_nao_deixa_o_email_no_log_do_postgres(cliente, p
 
 async def test_cadastros_simultaneos_sem_email_no_log_do_postgres(cliente, postgres):
     email = f"corrida-{uuid.uuid4().hex}@example.com"
-    corpo = {"email": email, "senha": SENHA_DE_TESTE, "consentimento": True}
+    corpo = {
+        "nome": NOME_DE_TESTE,
+        "email": email,
+        "senha": SENHA_DE_TESTE,
+        "consentimento": True,
+    }
 
     respostas = await asyncio.gather(
         *(cliente.post("/v1/auth/cadastro", json=corpo) for _ in range(5))
@@ -68,8 +78,8 @@ async def test_controle_positivo_a_violacao_de_unicidade_poe_o_email_no_log(post
     """Prova que o log mostraria o e-mail se o cadastro ainda gerasse a violação."""
     email = f"controle-{uuid.uuid4().hex}@example.com"
     inserir = text(
-        "INSERT INTO usuarias (id, email, senha_hash, consentiu_em) "
-        "VALUES (gen_random_uuid(), :email, 'h', now())"
+        "INSERT INTO usuarias (id, nome, email, senha_hash, consentiu_em) "
+        "VALUES (gen_random_uuid(), 'Ana', :email, 'h', now())"
     )
     await banco.execute(inserir, {"email": email})
     await banco.commit()

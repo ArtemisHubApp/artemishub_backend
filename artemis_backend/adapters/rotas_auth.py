@@ -23,7 +23,7 @@ roteador = APIRouter(prefix="/v1/auth", tags=["auth"])
 )
 async def cadastro(pedido: PedidoCadastro, contas: Contas) -> CadastroSaida:
     try:
-        id_ = await contas.cadastrar(pedido.email, pedido.senha, pedido.consentimento)
+        id_ = await contas.cadastrar(pedido.nome, pedido.email, pedido.senha, pedido.consentimento)
     except EmailJaCadastrado:
         raise HTTPException(status.HTTP_409_CONFLICT, "E-mail já cadastrado") from None
     return CadastroSaida(id=id_)

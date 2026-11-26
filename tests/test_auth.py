@@ -17,7 +17,7 @@ from artemis_backend.adapters.autenticacao import usuaria_atual
 from artemis_backend.main import criar_app
 from tests.apoio.banco import config_alembic
 from tests.apoio.sessao import token
-from tests.apoio.valores import SEGREDO_DE_TESTE, SENHA_DE_TESTE
+from tests.apoio.valores import NOME_DE_TESTE, SEGREDO_DE_TESTE, SENHA_DE_TESTE
 
 EMAIL = "ana@example.com"
 
@@ -26,7 +26,13 @@ MENSAGEM_503 = {"detail": "Serviço indisponível, tente de novo"}
 
 
 def corpo(email: str = EMAIL, senha: str = SENHA_DE_TESTE, **extra) -> dict:
-    return {"email": email, "senha": senha, "consentimento": True, **extra}
+    return {
+        "nome": NOME_DE_TESTE,
+        "email": email,
+        "senha": senha,
+        "consentimento": True,
+        **extra,
+    }
 
 
 async def cadastrar(cliente, **kw):
@@ -68,7 +74,10 @@ async def test_cadastro_sem_consentimento(cliente, consentimento):
 
 
 async def test_cadastro_com_consentimento_ausente(cliente):
-    r = await cliente.post("/v1/auth/cadastro", json={"email": EMAIL, "senha": SENHA_DE_TESTE})
+    r = await cliente.post(
+        "/v1/auth/cadastro",
+        json={"nome": NOME_DE_TESTE, "email": EMAIL, "senha": SENHA_DE_TESTE},
+    )
     assert r.status_code == 422
 
 
@@ -113,7 +122,12 @@ async def test_422_nao_repete_senha_nem_email(cliente):
     senha = "curta"
     r = await cliente.post(
         "/v1/auth/cadastro",
-        json={"email": "invalido-segredo@", "senha": senha, "consentimento": "talvez"},
+        json={
+            "nome": NOME_DE_TESTE,
+            "email": "invalido-segredo@",
+            "senha": senha,
+            "consentimento": "talvez",
+        },
     )
     assert r.status_code == 422
     assert "curta" not in r.text and "invalido-segredo" not in r.text and "talvez" not in r.text

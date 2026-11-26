@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -11,6 +11,7 @@ from artemis_backend.domain.usuaria import EmailJaCadastrado, Usuaria
 def _para_dominio(linha: LinhaUsuaria) -> Usuaria:
     return Usuaria(
         id=linha.id,
+        nome=linha.nome,
         email=linha.email,
         senha_hash=linha.senha_hash,
         consentiu_em=linha.consentiu_em,
@@ -28,6 +29,7 @@ class RepositorioContasSql:
             insert(LinhaUsuaria)
             .values(
                 id=usuaria.id,
+                nome=usuaria.nome,
                 email=usuaria.email,
                 senha_hash=usuaria.senha_hash,
                 consentiu_em=usuaria.consentiu_em,
@@ -40,6 +42,18 @@ class RepositorioContasSql:
             await sessao.commit()
         if gravada is None:
             raise EmailJaCadastrado
+
+    async def renomear(self, id: uuid.UUID, nome: str) -> Usuaria | None:
+        comando = (
+            update(LinhaUsuaria)
+            .where(LinhaUsuaria.id == id)
+            .values(nome=nome)
+            .returning(LinhaUsuaria)
+        )
+        async with self._sessoes() as sessao:
+            linha = await sessao.scalar(comando)
+            await sessao.commit()
+        return _para_dominio(linha) if linha else None
 
     async def excluir(self, id: uuid.UUID) -> bool:
         comando = delete(LinhaUsuaria).where(LinhaUsuaria.id == id).returning(LinhaUsuaria.id)

@@ -4,7 +4,7 @@
 
 Este repositório contém a **API** do Artemis: a camada que conecta a interface web aos agentes de IA e à base de conhecimento, além de cuidar das regras de negócio, da autenticação e da persistência dos dados.
 
-> 🚧 **Em desenvolvimento.** Hoje existem `GET /health`, o cadastro com consentimento (`POST /v1/auth/cadastro`), o login (`POST /v1/auth/login`), o banco Postgres (tabelas `usuarias`, `conversas` e `mensagens`), as migrações e as rotas de conversas (criar, listar, abrir, apagar uma ou todas e perguntar), todas protegidas por sessão (token ou cookie). A pergunta chama o serviço de agentes por HTTP, mas o contrato ainda é um rascunho ([artemishub_agents#36](https://github.com/ArtemisHubApp/artemishub_agents/issues/36)) e o endpoint de lá ainda não existe: nos testes os agentes são simulados. Também existem `GET /v1/consentimento` e a exclusão da conta (`DELETE /v1/conta`). O texto do consentimento ainda precisa ser revisado pela equipe no ADR de LGPD. O compose com Postgres e backend é a [backend#11](https://github.com/ArtemisHubApp/artemishub_backend/issues/11) e ainda não existe.
+> 🚧 **Em desenvolvimento.** Hoje existem `GET /health`, o cadastro com consentimento (`POST /v1/auth/cadastro`), o login (`POST /v1/auth/login`), o banco Postgres (tabelas `usuarias`, `conversas` e `mensagens`), as migrações e as rotas de conversas (criar, listar, abrir, apagar uma ou todas e perguntar), todas protegidas por sessão (token ou cookie). A pergunta chama o serviço de agentes por HTTP, mas o contrato ainda é um rascunho ([artemishub_agents#36](https://github.com/ArtemisHubApp/artemishub_agents/issues/36)) e o endpoint de lá ainda não existe: nos testes os agentes são simulados. Também existem `GET /v1/consentimento`, a troca do nome (`PATCH /v1/conta`) e a exclusão da conta (`DELETE /v1/conta`). O texto do consentimento ainda precisa ser revisado pela equipe no ADR de LGPD. O compose com Postgres e backend é a [backend#11](https://github.com/ArtemisHubApp/artemishub_backend/issues/11) e ainda não existe.
 
 ## 🎯 Responsabilidades
 
@@ -46,13 +46,13 @@ Python 3.12, [uv](https://docs.astral.sh/uv/), FastAPI, SQLAlchemy 2 (async) com
 
 | Rota | Corpo | Resposta |
 |---|---|---|
-| `POST /v1/auth/cadastro` | `email`, `senha` (8 a 128 caracteres), `consentimento` (precisa ser o booleano `true`) | 201 com `{"id": ...}`; 409 se o e-mail já existe; 422 se algo for inválido |
+| `POST /v1/auth/cadastro` | `nome` (como a usuária quer ser chamada, só o primeiro nome ou apelido; 1 a 40 caracteres), `email`, `senha` (8 a 128 caracteres), `consentimento` (precisa ser o booleano `true`) | 201 com `{"id": ...}`; 409 se o e-mail já existe; 422 se algo for inválido |
 | `POST /v1/auth/login` | `email`, `senha` | 200 com `{"token": ..., "tipo": "bearer"}` (JWT de 60 minutos, sem refresh) e o cookie de sessão; 401 para senha errada ou e-mail sem conta, com a mesma resposta |
 | `POST /v1/auth/sair` | nenhum | 204 e apaga o cookie; também 204 sem sessão. Não invalida um token já copiado |
 
 No cadastro e no login, se o cabeçalho `Origin` vier, precisa ser igual a `ARTEMIS_ORIGEM`; senão, 403.
 
-O e-mail é normalizado (espaços e maiúsculas) no cadastro e no login. A senha é guardada com argon2. As respostas 422 não repetem o que foi enviado. O cadastro repetido usa `INSERT ... ON CONFLICT DO NOTHING`, para o e-mail não aparecer no log do Postgres.
+O e-mail é normalizado (espaços e maiúsculas) no cadastro e no login. O nome é como a usuária quer ser chamada (só o primeiro nome ou apelido, nunca o nome completo): aceita qualquer letra (acentos, nome social), perde os espaços das pontas, reduz os repetidos a um e não pode ter caractere de controle; 1 a 40 caracteres depois disso (a contagem é em pontos de código Unicode, depois de normalizar em NFC: um emoji pode valer mais de 1; caracteres invisíveis e nome sem letra, número ou símbolo são recusados), senão 422 sem repetir o que veio. Contas anteriores à migração 0004 ficaram com o nome provisório `Usuária`. O nome ainda não vai para os agentes (entra com o contrato da agents#36); nunca vai para os logs. O texto do consentimento já avisa que ele será enviado ao Gemini. A senha é guardada com argon2. As respostas 422 não repetem o que foi enviado. O cadastro repetido usa `INSERT ... ON CONFLICT DO NOTHING`, para o e-mail não aparecer no log do Postgres.
 
 ### Sessão no navegador
 
@@ -73,8 +73,9 @@ A API não sobe com um valor fora disso.
 
 | Rota | Resposta |
 |---|---|
-| `GET /v1/consentimento` | 200 com `{"texto": ...}`. Pública, para ser lida antes do cadastro. O texto cita o Google Gemini e o Langfuse, que recebem o texto das perguntas |
-| `GET /v1/conta` | Exige sessão. 200 com `{"id": ..., "email": ...}` da própria usuária; 401 sem sessão válida |
+| `GET /v1/consentimento` | 200 com `{"texto": ...}`. Pública, para ser lida antes do cadastro. O texto cita o Google Gemini e o Langfuse, que recebem o texto das perguntas e o nome com que a usuária quer ser chamada |
+| `GET /v1/conta` | Exige sessão. 200 com `{"id": ..., "nome": ..., "email": ...}` da própria usuária; 401 sem sessão válida |
+| `PATCH /v1/conta` | Exige sessão (com cookie, `Origin` igual a `ARTEMIS_ORIGEM`, senão 403). Corpo `{"nome": ...}` com as mesmas regras do cadastro; 200 com a conta; 422 se o nome for inválido. Só muda a conta da dona do token; `id` e e-mail do corpo são ignorados |
 | `DELETE /v1/conta` | Exige sessão. 204 e apaga a conta, as conversas, as mensagens e o cookie, sem volta; 401 sem sessão válida, inclusive numa segunda exclusão da mesma conta. O e-mail pode ser cadastrado de novo, sem as conversas antigas |
 
 **O que a exclusão não apaga:** os traces do Langfuse permanecem, e o texto do consentimento diz isso. O texto é provisório: a equipe o revisa no ADR de LGPD. Depois da exclusão, o token continua assinado, mas responde 401 em todas as rotas.
