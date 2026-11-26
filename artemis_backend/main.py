@@ -1,9 +1,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from pydantic import BaseModel
 
 from artemis_backend.adapters.agentes_http import AgentesHttp
@@ -18,6 +16,7 @@ from artemis_backend.adapters.rotas_conversas import roteador as rotas_conversas
 from artemis_backend.adapters.rotas_perguntas import roteador as rotas_perguntas
 from artemis_backend.adapters.seguranca import EmissorJwt, HasherArgon2, RelogioDoSistema
 from artemis_backend.adapters.sem_cache import SemCache
+from artemis_backend.adapters.validacao import responder_422_sem_eco
 from artemis_backend.application.contas import ServicoContas
 from artemis_backend.application.conversas import ServicoConversas
 from artemis_backend.application.perguntar import ServicoPerguntas
@@ -27,12 +26,6 @@ from artemis_backend.config import Config
 
 class Saude(BaseModel):
     status: str
-
-
-async def _validacao_sem_eco(_: Request, erro: RequestValidationError) -> JSONResponse:
-    """422 sem `input` nem `ctx`: o padrão do FastAPI devolveria a senha e o e-mail enviados."""
-    detalhes = [{"loc": e["loc"], "msg": e["msg"], "type": e["type"]} for e in erro.errors()]
-    return JSONResponse({"detail": detalhes}, 422)
 
 
 def criar_app(config: Config, agentes: Agentes | None = None) -> FastAPI:
@@ -49,7 +42,7 @@ def criar_app(config: Config, agentes: Agentes | None = None) -> FastAPI:
 
     app = FastAPI(title="Artemis API", lifespan=ciclo_de_vida, redirect_slashes=False)
     app.state.config = config
-    app.add_exception_handler(RequestValidationError, _validacao_sem_eco)
+    responder_422_sem_eco(app)
 
     # O motor só conecta no primeiro uso, então criar o app não exige o banco no ar.
     app.state.motor = criar_motor(config.database_url)
