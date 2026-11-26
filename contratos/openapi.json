@@ -1,0 +1,1208 @@
+{
+  "components": {
+    "schemas": {
+      "CadastroSaida": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "CadastroSaida",
+        "type": "object"
+      },
+      "ConsentimentoSaida": {
+        "properties": {
+          "texto": {
+            "title": "Texto",
+            "type": "string"
+          }
+        },
+        "required": [
+          "texto"
+        ],
+        "title": "ConsentimentoSaida",
+        "type": "object"
+      },
+      "ContaSaida": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ],
+        "title": "ContaSaida",
+        "type": "object"
+      },
+      "ConversaDetalheSaida": {
+        "properties": {
+          "atualizada_em": {
+            "format": "date-time",
+            "title": "Atualizada Em",
+            "type": "string"
+          },
+          "criada_em": {
+            "format": "date-time",
+            "title": "Criada Em",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mensagens": {
+            "items": {
+              "$ref": "#/components/schemas/MensagemSaida"
+            },
+            "title": "Mensagens",
+            "type": "array"
+          },
+          "titulo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Titulo"
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "criada_em",
+          "atualizada_em",
+          "mensagens"
+        ],
+        "title": "ConversaDetalheSaida",
+        "type": "object"
+      },
+      "ConversaSaida": {
+        "properties": {
+          "atualizada_em": {
+            "format": "date-time",
+            "title": "Atualizada Em",
+            "type": "string"
+          },
+          "criada_em": {
+            "format": "date-time",
+            "title": "Criada Em",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "titulo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Titulo"
+          }
+        },
+        "required": [
+          "id",
+          "titulo",
+          "criada_em",
+          "atualizada_em"
+        ],
+        "title": "ConversaSaida",
+        "type": "object"
+      },
+      "DetalheDeValidacao": {
+        "description": "Sem o valor enviado: o 422 não repete senha, e-mail nem pergunta.",
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Loc",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Msg",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "DetalheDeValidacao",
+        "type": "object"
+      },
+      "Erro": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "Erro",
+        "type": "object"
+      },
+      "ErroDeConflito": {
+        "description": "`ocupada`: a pergunta não foi gravada. `expirada`: foi, mas a resposta se perdeu.",
+        "properties": {
+          "codigo": {
+            "enum": [
+              "ocupada",
+              "expirada"
+            ],
+            "title": "Codigo",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "codigo"
+        ],
+        "title": "ErroDeConflito",
+        "type": "object"
+      },
+      "ErroDeValidacao": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/DetalheDeValidacao"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "ErroDeValidacao",
+        "type": "object"
+      },
+      "LoginSaida": {
+        "properties": {
+          "tipo": {
+            "const": "bearer",
+            "title": "Tipo",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "tipo"
+        ],
+        "title": "LoginSaida",
+        "type": "object"
+      },
+      "MensagemSaida": {
+        "properties": {
+          "aprovada": {
+            "title": "Aprovada",
+            "type": "boolean"
+          },
+          "bloqueada": {
+            "title": "Bloqueada",
+            "type": "boolean"
+          },
+          "criada_em": {
+            "format": "date-time",
+            "title": "Criada Em",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "papel": {
+            "enum": [
+              "usuaria",
+              "artemis"
+            ],
+            "title": "Papel",
+            "type": "string"
+          },
+          "pergunta_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pergunta Id"
+          },
+          "texto": {
+            "title": "Texto",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "papel",
+          "texto",
+          "criada_em",
+          "aprovada",
+          "bloqueada",
+          "pergunta_id"
+        ],
+        "title": "MensagemSaida",
+        "type": "object"
+      },
+      "PaginaDeConversasSaida": {
+        "properties": {
+          "itens": {
+            "items": {
+              "$ref": "#/components/schemas/ConversaSaida"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "proximo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proximo"
+          }
+        },
+        "required": [
+          "itens",
+          "proximo"
+        ],
+        "title": "PaginaDeConversasSaida",
+        "type": "object"
+      },
+      "PedidoCadastro": {
+        "properties": {
+          "consentimento": {
+            "title": "Consentimento",
+            "type": "boolean"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "senha": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Senha",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "senha",
+          "consentimento"
+        ],
+        "title": "PedidoCadastro",
+        "type": "object"
+      },
+      "PedidoLogin": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "senha": {
+            "maxLength": 128,
+            "title": "Senha",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "senha"
+        ],
+        "title": "PedidoLogin",
+        "type": "object"
+      },
+      "PedidoPergunta": {
+        "properties": {
+          "pergunta": {
+            "maxLength": 1000,
+            "title": "Pergunta",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pergunta"
+        ],
+        "title": "PedidoPergunta",
+        "type": "object"
+      },
+      "PerguntaRespondidaSaida": {
+        "properties": {
+          "pergunta": {
+            "$ref": "#/components/schemas/MensagemSaida"
+          },
+          "resposta": {
+            "$ref": "#/components/schemas/MensagemSaida"
+          }
+        },
+        "required": [
+          "pergunta",
+          "resposta"
+        ],
+        "title": "PerguntaRespondidaSaida",
+        "type": "object"
+      },
+      "Saude": {
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "Saude",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "cookie": {
+        "in": "cookie",
+        "name": "artemis_sessao",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "title": "Artemis API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "saude_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Saude"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Saude"
+      }
+    },
+    "/v1/auth/cadastro": {
+      "post": {
+        "operationId": "cadastro_v1_auth_cadastro_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoCadastro"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CadastroSaida"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Origem não permitida"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Conflito com o que já existe"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDeValidacao"
+                }
+              }
+            },
+            "description": "Pedido inválido"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Banco indisponível"
+          }
+        },
+        "summary": "Cadastro",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "login_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginSaida"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Sem sessão válida"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Origem não permitida"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDeValidacao"
+                }
+              }
+            },
+            "description": "Pedido inválido"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Banco indisponível"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/sair": {
+      "post": {
+        "operationId": "sair_v1_auth_sair_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Origem não permitida"
+          }
+        },
+        "summary": "Sair",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/consentimento": {
+      "get": {
+        "description": "Pública: a pessoa lê o texto antes de se cadastrar.",
+        "operationId": "consentimento_v1_consentimento_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentimentoSaida"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Consentimento",
+        "tags": [
+          "conta"
+        ]
+      }
+    },
+    "/v1/conta": {
+      "delete": {
+        "description": "Apaga a conta do token e, em cascata, as conversas e mensagens dela.",
+        "operationId": "excluir_v1_conta_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Sem sessão válida"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Origem não permitida"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Banco indisponível"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Excluir",
+        "tags": [
+          "conta"
+        ]
+      },
+      "get": {
+        "operationId": "ver_v1_conta_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContaSaida"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Sem sessão válida"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Banco indisponível"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ver",
+        "tags": [
+          "conta"
+        ]
+      }
+    },
+    "/v1/conversas": {
+      "delete": {
+        "operationId": "apagar_todas_v1_conversas_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Sem sessão válida"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Origem não permitida"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Banco indisponível"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Apagar Todas",
+        "tags": [
+          "conversas"
+        ]
+      },
+      "get": {
+        "operationId": "listar_v1_conversas_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limite",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaDeConversasSaida"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Sem sessão válida"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDeValidacao"
+                }
+              }
+            },
+            "description": "Pedido inválido"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Banco indisponível"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Listar",
+        "tags": [
+          "conversas"
+        ]
+      },
+      "post": {
+        "operationId": "criar_v1_conversas_post",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversaSaida"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Sem sessão válida"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Origem não permitida"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Banco indisponível"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Criar",
+        "tags": [
+          "conversas"
+        ]
+      }
+    },
+    "/v1/conversas/{conversa_id}": {
+      "delete": {
+        "operationId": "apagar_v1_conversas__conversa_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversa_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversa Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Sem sessão válida"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Origem não permitida"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Conversa não encontrada"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDeValidacao"
+                }
+              }
+            },
+            "description": "Pedido inválido"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Banco indisponível"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Apagar",
+        "tags": [
+          "conversas"
+        ]
+      },
+      "get": {
+        "operationId": "detalhar_v1_conversas__conversa_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversa_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversa Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversaDetalheSaida"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Sem sessão válida"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Conversa não encontrada"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDeValidacao"
+                }
+              }
+            },
+            "description": "Pedido inválido"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Banco indisponível"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Detalhar",
+        "tags": [
+          "conversas"
+        ]
+      }
+    },
+    "/v1/conversas/{conversa_id}/mensagens": {
+      "post": {
+        "operationId": "perguntar_v1_conversas__conversa_id__mensagens_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversa_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversa Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoPergunta"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerguntaRespondidaSaida"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Sem sessão válida"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Origem não permitida"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Conversa não encontrada"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDeConflito"
+                }
+              }
+            },
+            "description": "Conversa ocupada ou resposta expirada"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDeValidacao"
+                }
+              }
+            },
+            "description": "Pedido inválido"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            },
+            "description": "Banco indisponível"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Perguntar",
+        "tags": [
+          "conversas"
+        ]
+      }
+    }
+  }
+}

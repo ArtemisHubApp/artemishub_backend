@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from tests.conftest import SENHA_DE_TESTE
+from tests.apoio.valores import SENHA_DE_TESTE
 
 PRAZO_DO_LOG = 20  # segundos
 

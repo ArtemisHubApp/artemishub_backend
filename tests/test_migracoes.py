@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from artemis_backend.adapters.tabelas import Base, Conversa, Mensagem, Usuaria
-from tests.conftest import config_alembic
+from tests.apoio.banco import config_alembic
 
 
 async def nomes_de_tabelas(url: str) -> set[str]:

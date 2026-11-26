@@ -9,6 +9,7 @@ from artemis_backend.domain.conversa import (
     Mensagem,
     NovaResposta,
     PerguntaIniciada,
+    PosicaoNaLista,
     Troca,
 )
 
@@ -43,8 +44,13 @@ class RepositorioConversas(Protocol):
 
     async def criar(self, usuaria_id: uuid.UUID, conversa_id: uuid.UUID) -> Conversa: ...
 
-    async def listar(self, usuaria_id: uuid.UUID) -> list[Conversa]:
-        """Da mais recente para a mais antiga, com desempate fixo."""
+    async def listar(
+        self, usuaria_id: uuid.UUID, limite: int, depois_de: PosicaoNaLista | None
+    ) -> list[Conversa]:
+        """Até `limite` conversas da mais recente para a mais antiga, com desempate fixo.
+
+        Nenhuma se repete; uma atualizada entre duas páginas sobe para o topo e falta nas seguintes.
+        """
 
     async def obter(
         self, usuaria_id: uuid.UUID, conversa_id: uuid.UUID
@@ -53,6 +59,13 @@ class RepositorioConversas(Protocol):
 
     async def apagar(self, usuaria_id: uuid.UUID, conversa_id: uuid.UUID) -> bool:
         """Apaga a conversa e as mensagens; False se não existe (ou já foi apagada)."""
+
+    async def apagar_todas(self, usuaria_id: uuid.UUID) -> None:
+        """Apaga, de uma vez, as conversas e mensagens da usuária; nenhuma também vale."""
+
+
+class RepositorioPerguntas(Protocol):
+    """A pergunta e a trava da conversa, sempre filtradas por `usuaria_id`."""
 
     async def iniciar_pergunta(
         self,
@@ -78,7 +91,7 @@ class RepositorioConversas(Protocol):
         """Grava a resposta e solta a trava, tudo ou nada; `lembranca` None mantém a atual.
 
         Sem a trava obtida em `respondendo_desde`, não grava nada: ConversaInexistente se a
-        conversa sumiu, ConversaOcupada se a trava expirou e passou para outra pergunta.
+        conversa sumiu, RespostaExpirada se a trava expirou e passou para outra pergunta.
         """
 
     async def liberar_trava(

@@ -2,70 +2,21 @@ import asyncio
 import socket
 import uuid
 from dataclasses import replace
-from pathlib import Path
 
 import httpx
 import pytest
 import pytest_asyncio
 from alembic import command
-from alembic.config import Config as AlembicConfig
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
 from artemis_backend.adapters.banco import criar_fabrica_de_sessoes
-from artemis_backend.application.perguntar import RespostaAgentes
 from artemis_backend.config import Config
 from artemis_backend.main import criar_app
-
-SEGREDO_DE_TESTE = "segredo-falso-so-para-testes-com-mais-de-32-bytes"
-SENHA_DE_TESTE = "senha-de-teste-123"
-RAIZ = Path(__file__).resolve().parent.parent
-
-
-def resposta_dos_agentes(**campos) -> RespostaAgentes:
-    padrao = {
-        "resposta": "Resposta da Artemis",
-        "aprovada": True,
-        "bloqueada": False,
-        "fora_de_escopo": False,
-        "lembranca": None,
-        "trace_id": "trace",
-    }
-    return RespostaAgentes(**{**padrao, **campos})
-
-
-class AgentesFake:
-    """Guarda cada pedido. Depois de bloquear(), só responde (ou falha) após liberar()."""
-
-    def __init__(self) -> None:
-        self.chamadas: list[tuple] = []
-        self.resposta = resposta_dos_agentes()
-        self.erro: Exception | None = None
-        self.chamado = asyncio.Event()
-        self._livre = asyncio.Event()
-        self._livre.set()
-
-    def bloquear(self) -> None:
-        self._livre.clear()
-
-    def liberar(self) -> None:
-        self._livre.set()
-
-    async def responder(self, pergunta, sessao, historico, lembranca) -> RespostaAgentes:
-        self.chamadas.append((pergunta, sessao, historico, lembranca))
-        self.chamado.set()
-        await self._livre.wait()
-        if self.erro:
-            raise self.erro
-        return self.resposta
-
-
-def config_alembic(url: str) -> AlembicConfig:
-    config = AlembicConfig(str(RAIZ / "alembic.ini"))
-    config.set_main_option("script_location", str(RAIZ / "migrations"))
-    config.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
-    return config
+from tests.apoio.agentes import AgentesFake
+from tests.apoio.banco import config_alembic
+from tests.apoio.valores import ANA, ORIGEM_DE_TESTE, SEGREDO_DE_TESTE, SENHA_DE_TESTE
 
 
 @pytest.fixture(scope="session")
@@ -107,6 +58,7 @@ def config() -> Config:
         jwt_segredo=SEGREDO_DE_TESTE,
         agents_url="http://agentes.invalid",
         agents_token="token-de-teste",
+        origem=ORIGEM_DE_TESTE,
     )
 
 
@@ -150,3 +102,37 @@ def entrar_como(cliente):
         return {"Authorization": f"Bearer {r.json()['token']}"}
 
     return entrar
+
+
+@pytest_asyncio.fixture
+async def sessao(app):
+    async with criar_fabrica_de_sessoes(app.state.motor)() as s:
+        yield s
+
+
+@pytest_asyncio.fixture
+async def ana(entrar_como):
+    return await entrar_como(ANA)
+
+
+@pytest_asyncio.fixture
+async def conversa(cliente, ana) -> str:
+    return (await cliente.post("/v1/conversas", headers=ana)).json()["id"]
+
+
+@pytest.fixture
+def perguntar(cliente, ana, conversa):
+    async def enviar(pergunta="Quanto ganha uma dev?", id_=conversa, cabecalho=ana):
+        return await cliente.post(
+            f"/v1/conversas/{id_}/mensagens", headers=cabecalho, json={"pergunta": pergunta}
+        )
+
+    return enviar
+
+
+@pytest.fixture
+def mensagens(cliente, ana, conversa):
+    async def ler() -> list[dict]:
+        return (await cliente.get(f"/v1/conversas/{conversa}", headers=ana)).json()["mensagens"]
+
+    return ler

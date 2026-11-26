@@ -89,6 +89,13 @@ class ServicoContas:
             raise TokenInvalido
         return usuaria_id
 
+    async def obter(self, usuaria_id: uuid.UUID) -> Usuaria:
+        usuaria = await self._repositorio.por_id(usuaria_id)
+        if usuaria is None:
+            # Conta apagada entre a checagem do token e a leitura.
+            raise TokenInvalido
+        return usuaria
+
     async def excluir(self, usuaria_id: uuid.UUID) -> None:
         if not await self._repositorio.excluir(usuaria_id):
             # Outra exclusão da mesma conta chegou primeiro: o token já não vale.

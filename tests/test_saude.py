@@ -16,9 +16,11 @@ def test_config_le_as_variaveis_do_ambiente(monkeypatch):
     monkeypatch.setenv("ARTEMIS_JWT_SEGREDO", SEGREDO)
     monkeypatch.setenv("ARTEMIS_AGENTS_URL", "http://agentes")
     monkeypatch.setenv("ARTEMIS_AGENTS_TOKEN", "token")
+    monkeypatch.setenv("ARTEMIS_ORIGEM", "https://artemis.example.com")
     config = Config.de_ambiente()
     assert (config.database_url, config.jwt_segredo) == ("postgresql+asyncpg://u:p@h/d", SEGREDO)
     assert (config.agents_url, config.agents_token) == ("http://agentes", "token")
+    assert config.origem == "https://artemis.example.com"
 
 
 def test_config_sem_segredo_nao_sobe(monkeypatch):
@@ -34,13 +36,17 @@ def test_segredo_vazio_conta_como_ausente(monkeypatch, valor):
         Config.de_ambiente()
 
 
-@pytest.mark.parametrize("variavel", ["DATABASE_URL", "ARTEMIS_AGENTS_URL", "ARTEMIS_AGENTS_TOKEN"])
+@pytest.mark.parametrize(
+    "variavel",
+    ["DATABASE_URL", "ARTEMIS_AGENTS_URL", "ARTEMIS_AGENTS_TOKEN", "ARTEMIS_ORIGEM"],
+)
 def test_variavel_ausente_e_nomeada_no_erro(monkeypatch, variavel):
     for nome, valor in [
         ("DATABASE_URL", "x"),
         ("ARTEMIS_JWT_SEGREDO", "x"),
         ("ARTEMIS_AGENTS_URL", "x"),
         ("ARTEMIS_AGENTS_TOKEN", "x"),
+        ("ARTEMIS_ORIGEM", "x"),
     ]:
         monkeypatch.setenv(nome, valor)
     monkeypatch.delenv(variavel)
@@ -54,6 +60,7 @@ def test_segredos_nao_aparecem_no_repr():
         jwt_segredo="segredo-jwt-" + "x" * 32,
         agents_url="http://agentes",
         agents_token="token-agentes",
+        origem="https://artemis.example.com",
     )
     texto = repr(config)
     assert not any(s in texto for s in ["senha-do-banco", "segredo-jwt", "token-agentes"])
@@ -67,7 +74,7 @@ def test_app_de_ambiente_nao_sobe_sem_segredo(monkeypatch):
 
 @pytest.mark.parametrize("tamanho", [1, 31])
 def test_segredo_curto_nao_sobe_e_nao_aparece_no_erro(monkeypatch, tamanho):
-    for nome in ("DATABASE_URL", "ARTEMIS_AGENTS_URL", "ARTEMIS_AGENTS_TOKEN"):
+    for nome in ("DATABASE_URL", "ARTEMIS_AGENTS_URL", "ARTEMIS_AGENTS_TOKEN", "ARTEMIS_ORIGEM"):
         monkeypatch.setenv(nome, "x")
     monkeypatch.setenv("ARTEMIS_JWT_SEGREDO", "z" * tamanho)
     with pytest.raises(ValueError, match="32") as erro:

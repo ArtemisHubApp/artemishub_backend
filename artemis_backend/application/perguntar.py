@@ -6,15 +6,15 @@ from datetime import datetime
 from artemis_backend.application.portas import (
     Agentes,
     AgentesIndisponiveis,
-    RepositorioConversas,
+    RepositorioPerguntas,
     RespostaAgentes,
 )
 from artemis_backend.domain.conversa import (
     ConversaInexistente,
-    ConversaOcupada,
     Mensagem,
     NovaResposta,
     PerguntaIniciada,
+    RespostaExpirada,
     memoria_curta,
     titulo_da_conversa,
 )
@@ -33,7 +33,7 @@ _INDISPONIVEL = RespostaAgentes(
 
 
 class ServicoPerguntas:
-    def __init__(self, repositorio: RepositorioConversas, agentes: Agentes) -> None:
+    def __init__(self, repositorio: RepositorioPerguntas, agentes: Agentes) -> None:
         self._repositorio = repositorio
         self._agentes = agentes
         # Referência forte: o laço de eventos só guarda referência fraca das tarefas.
@@ -50,7 +50,7 @@ class ServicoPerguntas:
         try:
             obtida = await self._responder(conversa_id, iniciada)
             resposta = await self._concluir(usuaria_id, conversa_id, iniciada, obtida)
-        except (ConversaInexistente, ConversaOcupada):
+        except (ConversaInexistente, RespostaExpirada):
             raise  # a trava já não é desta pergunta
         except BaseException:
             # BaseException inclui o cancelamento (desligamento da API).

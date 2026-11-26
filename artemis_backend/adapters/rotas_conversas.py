@@ -1,94 +1,73 @@
 import dataclasses
 import uuid
-from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from pydantic import BaseModel, Field, PlainSerializer, StrictStr, field_validator
+from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi.exceptions import RequestValidationError
 
-from artemis_backend.adapters.rotas_auth import token_invalido, usuaria_atual
+from artemis_backend.adapters.autenticacao import Usuaria, token_invalido
+from artemis_backend.adapters.conversa_inexistente import nao_encontrada
+from artemis_backend.adapters.cursor import (
+    CURSOR_MAXIMO,
+    CursorInvalido,
+    escrever_cursor,
+    ler_cursor,
+)
+from artemis_backend.adapters.esquemas_conversas import (
+    ConversaDetalheSaida,
+    ConversaSaida,
+    PaginaDeConversasSaida,
+)
+from artemis_backend.adapters.esquemas_de_erro import erros
 from artemis_backend.application.conversas import ServicoConversas
-from artemis_backend.application.perguntar import ServicoPerguntas
 from artemis_backend.domain.conversa import (
-    PERGUNTA_MAXIMA,
+    PAGINA_MAXIMA,
+    PAGINA_PADRAO,
     ConversaInexistente,
-    ConversaOcupada,
+    PosicaoNaLista,
     UsuariaInexistente,
 )
 
 roteador = APIRouter(prefix="/v1/conversas", tags=["conversas"])
 
 
-def _em_utc(data: datetime) -> str:
-    return data.astimezone(UTC).isoformat().replace("+00:00", "Z")
-
-
-DataUtc = Annotated[datetime, PlainSerializer(_em_utc, return_type=str)]
-
-
-class ConversaSaida(BaseModel):
-    id: uuid.UUID
-    titulo: str | None
-    criada_em: DataUtc
-    atualizada_em: DataUtc
-
-
-class MensagemSaida(BaseModel):
-    id: uuid.UUID
-    papel: str
-    texto: str
-    criada_em: DataUtc
-    aprovada: bool
-    bloqueada: bool
-    pergunta_id: uuid.UUID | None
-
-
-class ConversaDetalheSaida(ConversaSaida):
-    mensagens: list[MensagemSaida]
-
-
-class PedidoPergunta(BaseModel):
-    # O limite vale para o texto como chegou; surrogate solto o próprio pydantic recusa.
-    pergunta: StrictStr = Field(max_length=PERGUNTA_MAXIMA)
-
-    @field_validator("pergunta")
-    @classmethod
-    def _recusar_vazia_e_nul(cls, valor: str) -> str:
-        if not valor.strip():
-            raise ValueError("A pergunta não pode ser vazia")
-        if "\x00" in valor:
-            raise ValueError("A pergunta tem um caractere inválido")
-        return valor
-
-
-class PerguntaRespondidaSaida(BaseModel):
-    pergunta: MensagemSaida
-    resposta: MensagemSaida
-
-
 def _servico(request: Request) -> ServicoConversas:
     return request.app.state.conversas
 
 
-def _perguntas(request: Request) -> ServicoPerguntas:
-    return request.app.state.perguntas
-
-
 Servico = Annotated[ServicoConversas, Depends(_servico)]
-Perguntas = Annotated[ServicoPerguntas, Depends(_perguntas)]
-Usuaria = Annotated[uuid.UUID, Depends(usuaria_atual)]
 
 
-def _nao_encontrada() -> HTTPException:
-    return HTTPException(status.HTTP_404_NOT_FOUND, "Conversa não encontrada")
+def _posicao_do_cursor(
+    cursor: Annotated[str | None, Query(max_length=CURSOR_MAXIMO)] = None,
+) -> PosicaoNaLista | None:
+    if cursor is None:
+        return None
+    try:
+        return ler_cursor(cursor)
+    except CursorInvalido:
+        erro = {"loc": ("query", "cursor"), "msg": "Cursor inválido", "type": "cursor_invalido"}
+        raise RequestValidationError([erro]) from None
 
 
-@roteador.get("", response_model=list[ConversaSaida])
-async def listar(usuaria_id: Usuaria, servico: Servico):
-    return await servico.listar(usuaria_id)
+@roteador.get("", response_model=PaginaDeConversasSaida, responses=erros(401, 422, 503))
+async def listar(
+    usuaria_id: Usuaria,
+    servico: Servico,
+    depois_de: Annotated[PosicaoNaLista | None, Depends(_posicao_do_cursor)],
+    limite: Annotated[int, Query(ge=1, le=PAGINA_MAXIMA)] = PAGINA_PADRAO,
+):
+    pagina = await servico.listar(usuaria_id, limite, depois_de)
+    proximo = None if pagina.proxima is None else escrever_cursor(pagina.proxima)
+    return {"itens": pagina.itens, "proximo": proximo}
 
 
-@roteador.post("", status_code=status.HTTP_201_CREATED, response_model=ConversaSaida)
+@roteador.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ConversaSaida,
+    responses=erros(401, 403, 503),
+)
 async def criar(usuaria_id: Usuaria, servico: Servico):
     try:
         return await servico.criar(usuaria_id)
@@ -97,38 +76,31 @@ async def criar(usuaria_id: Usuaria, servico: Servico):
         raise token_invalido() from None
 
 
-@roteador.get("/{conversa_id}", response_model=ConversaDetalheSaida)
+@roteador.get(
+    "/{conversa_id}", response_model=ConversaDetalheSaida, responses=erros(401, 404, 422, 503)
+)
 async def detalhar(conversa_id: uuid.UUID, usuaria_id: Usuaria, servico: Servico):
     try:
         historico = await servico.obter(usuaria_id, conversa_id)
     except ConversaInexistente:
-        raise _nao_encontrada() from None
+        raise nao_encontrada() from None
     return {**dataclasses.asdict(historico.conversa), "mensagens": historico.mensagens}
 
 
-@roteador.post(
-    "/{conversa_id}/mensagens",
-    status_code=status.HTTP_201_CREATED,
-    response_model=PerguntaRespondidaSaida,
+@roteador.delete("", status_code=status.HTTP_204_NO_CONTENT, responses=erros(401, 403, 503))
+async def apagar_todas(usuaria_id: Usuaria, servico: Servico) -> Response:
+    await servico.apagar_todas(usuaria_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@roteador.delete(
+    "/{conversa_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=erros(401, 403, 404, 422, 503),
 )
-async def perguntar(
-    conversa_id: uuid.UUID, pedido: PedidoPergunta, usuaria_id: Usuaria, servico: Perguntas
-):
-    try:
-        pergunta, resposta = await servico.perguntar(usuaria_id, conversa_id, pedido.pergunta)
-    except ConversaInexistente:
-        raise _nao_encontrada() from None
-    except ConversaOcupada:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "Já há uma pergunta em andamento nesta conversa"
-        ) from None
-    return {"pergunta": pergunta, "resposta": resposta}
-
-
-@roteador.delete("/{conversa_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def apagar(conversa_id: uuid.UUID, usuaria_id: Usuaria, servico: Servico) -> Response:
     try:
         await servico.apagar(usuaria_id, conversa_id)
     except ConversaInexistente:
-        raise _nao_encontrada() from None
+        raise nao_encontrada() from None
     return Response(status_code=status.HTTP_204_NO_CONTENT)
