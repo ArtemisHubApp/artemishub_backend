@@ -10,12 +10,7 @@ from artemis_backend.adapters.esquemas_auth import (
 from artemis_backend.adapters.esquemas_de_erro import erros
 from artemis_backend.adapters.origem import exigir_origem_com_cookie, recusar_outra_origem
 from artemis_backend.adapters.sessao import apagar_cookie, cookies_de_sessao, gravar_cookie
-from artemis_backend.domain.usuaria import (
-    ConsentimentoAusente,
-    CredenciaisInvalidas,
-    EmailInvalido,
-    EmailJaCadastrado,
-)
+from artemis_backend.domain.usuaria import CredenciaisInvalidas, EmailJaCadastrado
 
 roteador = APIRouter(prefix="/v1/auth", tags=["auth"])
 
@@ -31,8 +26,6 @@ async def cadastro(pedido: PedidoCadastro, contas: Contas) -> CadastroSaida:
         id_ = await contas.cadastrar(pedido.email, pedido.senha, pedido.consentimento)
     except EmailJaCadastrado:
         raise HTTPException(status.HTTP_409_CONFLICT, "E-mail já cadastrado") from None
-    except (ConsentimentoAusente, EmailInvalido) as erro:
-        raise HTTPException(422, str(erro)) from None
     return CadastroSaida(id=id_)
 
 
