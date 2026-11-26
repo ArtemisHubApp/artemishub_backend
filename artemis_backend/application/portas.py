@@ -49,7 +49,7 @@ class RepositorioConversas(Protocol):
     ) -> list[Conversa]:
         """Até `limite` conversas da mais recente para a mais antiga, com desempate fixo.
 
-        Uma conversa atualizada entre duas páginas muda de lugar e pode repetir ou faltar.
+        Nenhuma se repete; uma atualizada entre duas páginas sobe para o topo e falta nas seguintes.
         """
 
     async def obter(

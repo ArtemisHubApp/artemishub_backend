@@ -86,7 +86,7 @@ Exigem sessão, por `Authorization: Bearer <token>` ou cookie (401 sem sessão v
 | Rota | Resposta |
 |---|---|
 | `POST /v1/conversas` | 201 com a conversa vazia: `id`, `titulo` (nulo até a primeira pergunta), `criada_em`, `atualizada_em` |
-| `GET /v1/conversas?limite=50&cursor=...` | 200 com `{"itens": [...], "proximo": ...}`, da mais recente para a mais antiga (por `atualizada_em`). `limite` de 1 a 100 (padrão 50); `proximo` é o `cursor` da página seguinte, ou nulo na última; 422 para limite ou cursor inválido. Uma conversa atualizada entre duas páginas muda de lugar e pode repetir ou faltar |
+| `GET /v1/conversas?limite=50&cursor=...` | 200 com `{"itens": [...], "proximo": ...}`, da mais recente para a mais antiga (por `atualizada_em`). `limite` de 1 a 100 (padrão 50); `proximo` é o `cursor` da página seguinte, ou nulo na última; 422 para limite ou cursor inválido. Nenhuma conversa se repete; uma atualizada entre duas páginas sobe para o topo e não aparece nas páginas seguintes |
 | `DELETE /v1/conversas` | 204 e apaga todas as conversas da usuária, sem volta; 204 também se não há nenhuma. Uma pergunta em andamento recebe 404 |
 | `GET /v1/conversas/{id}` | 200 com a conversa e `mensagens` em ordem cronológica (`id`, `papel`, `texto`, `criada_em`, `aprovada`, `bloqueada`, `pergunta_id`); 404; 422 se o id não for um UUID |
 | `DELETE /v1/conversas/{id}` | 204 e apaga as mensagens, sem volta; 404 se não existe ou já foi apagada |
