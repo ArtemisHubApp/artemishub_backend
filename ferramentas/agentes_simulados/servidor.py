@@ -3,6 +3,7 @@
 import hmac
 import json
 import os
+import sys
 import time
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler
@@ -37,7 +38,8 @@ class Servidor(ThreadingMixIn, TCPServer):
         super().__init__((HOST, porta), _Atendente)
 
     def handle_error(self, request: Any, client_address: Any) -> None:
-        """Conexão que caiu no meio: o traceback padrão poderia citar o pedido."""
+        """Só o tipo do erro: o traceback padrão poderia citar o pedido ou o token."""
+        print(f"Erro ao atender: {sys.exc_info()[0].__name__}", file=sys.stderr)
 
 
 def criar_servidor(

@@ -161,3 +161,19 @@ def test_nao_registra_corpo_nem_token(url, capfd):
     cru(url, b"zqx linha quebrada\r\n\r\n")
     saida = "".join(capfd.readouterr())
     assert "zqx" not in saida and TOKEN not in saida
+
+
+def test_erro_inesperado_registra_so_o_tipo(capsys):
+    from ferramentas.agentes_simulados.servidor import criar_servidor
+
+    servidor = criar_servidor(0, TOKEN)
+    try:
+        try:
+            raise ConnectionResetError(f"zqx {TOKEN}")
+        except ConnectionResetError:
+            servidor.handle_error(None, ("127.0.0.1", 1))
+    finally:
+        servidor.server_close()
+    saida = "".join(capsys.readouterr())
+    assert "ConnectionResetError" in saida
+    assert "zqx" not in saida and TOKEN not in saida
