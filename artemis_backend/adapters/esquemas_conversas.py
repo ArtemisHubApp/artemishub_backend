@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, PlainSerializer, StrictStr, field_validator
+from pydantic import BaseModel, Field, PlainSerializer, StrictStr, WithJsonSchema, field_validator
 
 from artemis_backend.domain.conversa import PERGUNTA_MAXIMA
 
@@ -11,7 +11,11 @@ def _em_utc(data: datetime) -> str:
     return data.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
-DataUtc = Annotated[datetime, PlainSerializer(_em_utc, return_type=str)]
+DataUtc = Annotated[
+    datetime,
+    PlainSerializer(_em_utc, return_type=str),
+    WithJsonSchema({"type": "string", "format": "date-time"}),
+]
 
 
 class ConversaSaida(BaseModel):

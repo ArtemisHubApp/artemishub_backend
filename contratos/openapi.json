@@ -50,10 +50,12 @@
       "ConversaDetalheSaida": {
         "properties": {
           "atualizada_em": {
+            "format": "date-time",
             "title": "Atualizada Em",
             "type": "string"
           },
           "criada_em": {
+            "format": "date-time",
             "title": "Criada Em",
             "type": "string"
           },
@@ -94,10 +96,12 @@
       "ConversaSaida": {
         "properties": {
           "atualizada_em": {
+            "format": "date-time",
             "title": "Atualizada Em",
             "type": "string"
           },
           "criada_em": {
+            "format": "date-time",
             "title": "Criada Em",
             "type": "string"
           },
@@ -243,6 +247,7 @@
             "type": "boolean"
           },
           "criada_em": {
+            "format": "date-time",
             "title": "Criada Em",
             "type": "string"
           },

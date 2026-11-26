@@ -108,3 +108,17 @@ def test_sessao_por_bearer_ou_cookie_so_nas_rotas_protegidas(app):
 def test_documento_nao_leva_configuracao():
     assert ORIGEM_DE_TESTE not in documento()
     assert "postgresql" not in documento()
+
+
+def test_datas_sao_date_time():
+    esquemas = DOCUMENTO["components"]["schemas"]
+    for modelo, campos in [
+        ("ConversaSaida", ("criada_em", "atualizada_em")),
+        ("MensagemSaida", ("criada_em",)),
+    ]:
+        for campo in campos:
+            assert esquemas[modelo]["properties"][campo] == {
+                "type": "string",
+                "format": "date-time",
+                "title": campo.replace("_", " ").title(),
+            }
